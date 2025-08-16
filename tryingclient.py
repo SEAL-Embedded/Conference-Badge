@@ -44,7 +44,7 @@ async def main():
             print("Timeout discovering services/characteristics")
             return
 
-        while connection.is_connected():
+        if connection.is_connected():
             degree = await temp_characteristic.read()
             print("Degree: ", _decode(degree))
             await asyncio.sleep_ms(1000)
@@ -52,6 +52,7 @@ async def main():
             planned_degree = await temp_characteristic.read()
             print("Planned Degree: ", _decode(planned_degree))
             await asyncio.sleep_ms(1000)
+
 
 
 
