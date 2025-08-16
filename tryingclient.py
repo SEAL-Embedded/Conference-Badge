@@ -2,10 +2,15 @@ import bluetooth
 import aioble
 import asyncio
 import struct
+from machine import Pin
+from utime import sleep
 
 #ble = bluetooth.BLE()
 #ble.active(True)
 
+set_degree = 0
+set_major = 0
+pin = Pin("LED", Pin.OUT)
 
 '''these are set in the server, here to compare the addresses'''
 _ENV_SENSE_UUID = bluetooth.UUID(0x181A)
@@ -22,6 +27,19 @@ async def find_other():
 def _decode(message):
     return struct.unpack("<h", message)[0] / 100 
 
+def check_match(degree, major):
+    match = 0
+    if degree == set_degree:
+        match += 1
+    elif major == set_major:
+        match += 1
+
+    if match < 2:
+        print("Good match!")
+        return True
+    else:
+        print("...")
+        return False
 
 async def main():
     device = await find_other()
@@ -46,13 +64,23 @@ async def main():
 
         if connection.is_connected():
             degree = await temp_characteristic.read()
-            print("Degree: ", _decode(degree))
+            degree = _decode(degree)
+            print("Degree: ", degree)
             await asyncio.sleep_ms(1000)
 
-            planned_degree = await temp_characteristic.read()
-            print("Planned Degree: ", _decode(planned_degree))
+            major = await temp_characteristic.read()
+            major = _decode(major)
+            print("Planned Degree: ", major)
             await asyncio.sleep_ms(1000)
 
+            if check_match(degree, major):
+                pin.on()
+                sleep(1) # sleep 1sec
+                pin.off()
+                sleep(1)
+                pin.on()
+                sleep(1) # sleep 1sec
+                pin.off()
+                print("Finished.")
 
 asyncio.run(main())
-
