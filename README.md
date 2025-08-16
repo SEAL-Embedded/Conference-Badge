@@ -11,8 +11,7 @@ Each badge will contain a coded representation of the participant’s profile, t
 
 ### Prerequisites
 
-* use VS Code or Thonny to run the program
-* ex. Windows 10
+* VS Code or Thonny to run the program
 
 ### Installing
 
