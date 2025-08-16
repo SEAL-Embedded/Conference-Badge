@@ -81,6 +81,12 @@ async def main():
                 pin.on()
                 sleep(1) # sleep 1sec
                 pin.off()
+                sleep(1)
+                pin.on()
+                sleep(1) # sleep 1sec
+                pin.off()
                 print("Finished.")
 
+
 asyncio.run(main())
+                
