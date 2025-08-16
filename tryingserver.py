@@ -35,7 +35,7 @@ major = 1 if CS
 etc
 '''
 
-#set the degree in the set up I guess
+#set the information 
 degree = 0
 major = 0
 
@@ -71,3 +71,4 @@ async def main():
     await asyncio.gather(t1, t2)
     
 asyncio.run(main())
+
