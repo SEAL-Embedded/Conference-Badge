@@ -4,7 +4,6 @@ import asyncio
 from micropython import const
 import struct
 
-
 ble = bluetooth.BLE()
 ble.active(True)
 
@@ -23,30 +22,34 @@ temp_characteristic = aioble.Characteristic(
 aioble.register_services(temp_service)
 
 def _decode(message):
-    return struct.unpack("<h", message)[0] / 100 
+    return struct.unpack("<h", message)[0] / 100
 
-''' legend for the "roles" (?): 
+''' 
+legend for the "roles" (?):
 degree = o if hs
 degree = 1 if undergrad
-degree = 2 if graduate'''
+degree = 2 if graduate
+
+major = 0 if EE
+major = 1 if CS
+etc
+'''
 
 #set the degree in the set up I guess
 degree = 0
-planned_degree = 1
+major = 0
 
 def encode(temp):
     return struct.pack("<h", int(temp * 100))
-
 
 async def sensor_task():
     degree = 0
     await asyncio.sleep_ms(1000)
     temp_characteristic.write(encode(degree), send_update=True)
-    print(degree) 
+    print(degree)
     await asyncio.sleep_ms(1000)
-    temp_characteristic.write(encode(planned_degree), send_update=True)
-    print(planned_degree)
-
+    temp_characteristic.write(encode(major), send_update=True)
+    print(major)
 
 # Serially wait for connections. Don't advertise while a central is
 # connected.
@@ -66,7 +69,5 @@ async def main():
     t1 = asyncio.create_task(sensor_task())
     t2 = asyncio.create_task(peripheral_task())
     await asyncio.gather(t1, t2)
-
-
-
+    
 asyncio.run(main())
