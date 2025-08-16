@@ -21,9 +21,6 @@ temp_characteristic = aioble.Characteristic(
 )
 aioble.register_services(temp_service)
 
-def _decode(message):
-    return struct.unpack("<h", message)[0] / 100
-
 ''' 
 legend for the "roles" (?):
 degree = o if hs
@@ -35,9 +32,12 @@ major = 1 if CS
 etc
 '''
 
-#set the information 
-degree = 0
-major = 0
+#set the information here
+set_degree = 0
+set_major = 0
+
+def decode(message):
+    return struct.unpack("<h", message)[0] / 100
 
 def encode(temp):
     return struct.pack("<h", int(temp * 100))
@@ -45,11 +45,11 @@ def encode(temp):
 async def sensor_task():
     degree = 0
     await asyncio.sleep_ms(1000)
-    temp_characteristic.write(encode(degree), send_update=True)
-    print(degree)
+    temp_characteristic.write(encode(set_degree), send_update=True)
+    print(set_degree)
     await asyncio.sleep_ms(1000)
-    temp_characteristic.write(encode(major), send_update=True)
-    print(major)
+    temp_characteristic.write(encode(set_major), send_update=True)
+    print(set_major)
 
 # Serially wait for connections. Don't advertise while a central is
 # connected.
@@ -63,12 +63,10 @@ async def peripheral_task():
         ) as connection:
             print("Connection from", connection.device)
             await connection.disconnected(timeout_ms=None)
-
+            
 # Run both tasks.
 async def main():
     t1 = asyncio.create_task(sensor_task())
     t2 = asyncio.create_task(peripheral_task())
     await asyncio.gather(t1, t2)
-    
 asyncio.run(main())
-
