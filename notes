@@ -1,0 +1,26 @@
+The basic info should be stored, 
+let every value have number assignment, like, say:
+degree = 1 // if undergrad, 2 if masters, and 3 if phd
+
+badge must be able to read the stored info, consider the following:
+1. ble.gatts_read(value_handle)
+2. ble.gattc_read(conn_handle, value_handle)
+
+//maybe store the match value somewhere and change it like how we have the SEAL rank 
+and evaluate the match (return the response):
+1. ble.gattc_write(conn_handle, value_handle, data, mode=0)
+
+to set the values:
+1. ble.gatts_write(value_handle, data, send_update=False)	
+
+""" conection """
+badges must be able to advertise their info, for that:
+1. ble.gap_advertise(interval_us, adv_data=None, *, resp_data=None, connectable=True)
+
+badges must be able to scan for other badges and their info, for that:
+// tis below will get this event data (addr_type, addr, adv_type, rssi, adv_data)
+1. ble.gap_scan(duration_ms, interval_us=1280000, window_us=11250, active=False) 
+
+field, majors
+embedded, ml, etc.
+
