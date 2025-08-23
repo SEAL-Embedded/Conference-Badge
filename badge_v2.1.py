@@ -23,11 +23,11 @@ degree = 2 if graduate'''
 
 
 #these can only do numbers for now:
-def encode(temp):
-    return struct.pack("<h", int(temp * 100))
-
-def _decode(message):
-    return struct.unpack("<h", message)[0] / 100 
+def _encode(major, degree):
+    return struct.pack("<h", int(major), int(degree))
+    
+def _decode1(message):
+    return struct.unpack("<h", message)[0] / 1 
 
 
 class Badge:
@@ -49,11 +49,9 @@ class Badge:
     #set the info in the characteristic:
     async def setup_task(self):
         await asyncio.sleep_ms(1000)
-        self.info_characteristic.write(encode(self.set_degree), send_update=True)
-        print(self.set_degree)
+        information = _encode(self.set_major, self.set_degree)
+        self.info_characteristic.write(information, send_update=True)
         await asyncio.sleep_ms(1000)
-        self.info_characteristic.write(encode(self.set_major), send_update=True)
-        print(self.set_major)
 
     #scanning method
     async def find_other(self):
@@ -61,7 +59,6 @@ class Badge:
             async for result in scanner:
                 if _BADGE_UUID in result.services():
                     print(f"Found device: {result.device}")
-                    print(f"Services advertised: {result.services()}")  # Debug line
                     return result.device
         return None
 
@@ -76,7 +73,10 @@ class Badge:
                 appearance=0,
             ) as connection:
                 #word "connection" is just a way of naming whatever this function returns
-                print("Connection from", connection.device)
+                print("Advertising found connection!, from:", connection.device)
+                
+                #this is to pull the device from here if scanning is unavailable
+                self.saved_connection = connection
                 self.connected_device = connection.device
                 await connection.disconnected(timeout_ms=None)
 
@@ -85,16 +85,21 @@ class Badge:
 
         device = await self.find_other()
         if not device:
-            if self.connected_device:
-                device = self.connected_device
-            else:
-                print("Device not found")
-                return
+            print("Device not found")
+            return
         
         #connecting
         try:
             print("Connecting to", device)
-            connection = await device.connect()
+            if device:
+                print("from find_other!")
+                connection = await device.connect()
+            elif self.connected_device:
+                print("from advertising!")
+                connection = self.saved_connection
+            else:
+                print("Connection not found")
+                return
         except asyncio.TimeoutError:
             print("Timeout during connection")
             return
@@ -119,18 +124,18 @@ class Badge:
             #when connected, read and decode
             if connection.is_connected():
                 degree = await self.info_connection_characteristic.read()
-                degree = _decode(degree)
+                degree = _decode1(degree)
                 print("Degree: ", degree)
                 await asyncio.sleep_ms(1000)
 
                 major = await self.info_connection_characteristic.read()
-                major = _decode(major)
-                print("Planned Degree: ", major)
+                major = _decode1(major)
+                print("Major: ", major)
                 await asyncio.sleep_ms(1000)
 
-                if self.check_match(degree, major):
+                if self.check_match(degree, major) == 1:
                     #the writing needs to be changed
-                    self.match_connection_characteristic.write(encode(self.check_match(degree, major)))
+                    self.match_connection_characteristic.write(encode((major, degree))
                     pin.on()
                     sleep(1) # sleep 1sec
                     pin.off()
@@ -145,15 +150,18 @@ class Badge:
 
         if match == 2:
             print("Good match!")
-            return True
+            return 1
         else:
             print("Bad match")
-            return False
+            return 0
     
     async def run_task(self):
         await self.setup_task()
         advertise = asyncio.create_task(self.advertise())
-        await self.evaluate_connection()
+        t = 0
+        while t < 2:
+            await self.evaluate_connection()
+            t += 1
         
         #does advertising forever
         await advertise
