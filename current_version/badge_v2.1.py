@@ -108,7 +108,7 @@ class Badge:
         #when connected - get access to server and characteristic 
         async with connection:
             try:
-                self.badge_connection_service = await connection.service(_BADGE_UUID)
+                self.badge_connection_service = await connection.service(_BADGE_SERVICE_UUID)
 
                 if self.badge_connection_service is None:
                     print("Service not found!")
