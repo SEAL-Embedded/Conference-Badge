@@ -31,11 +31,11 @@ def _decode1(message):
 
 
 class Badge:
-    def __init__(self, major, degree):
+    def __init__(self, major, degree, name):
         #set info attributes
         self.set_major = major
         self.set_degree = degree
-        self.set_name = "AAAAAAAAAA"
+        self.set_name = name
 
         #set and registed service and characteristics
         self.badge_service = aioble.Service(_BADGE_UUID)
@@ -159,16 +159,16 @@ class Badge:
     async def run_task(self):
         await self.setup_task()
         advertise = asyncio.create_task(self.advertise())
-        t = 0
-        while t < 2:
-            await self.evaluate_connection()
-            t += 1
-        
+
+        #run it twice to make sure
+        await self.evaluate_connection()
+        await self.evaluate_connection()
+
         #does advertising forever
         await advertise
 
 async def main():
-    badge = Badge(0, 0)
+    badge = Badge(0, 0, "this is a test")
     await badge.run_task()
 
 asyncio.run(main())

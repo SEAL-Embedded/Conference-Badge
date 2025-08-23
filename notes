@@ -31,3 +31,10 @@ temp_char = aioble.Characteristic(temp_service, _ENV_SENSE_TEMP_UUID, read=True,
 you can now do
 temp_char = aioble.BufferedCharacteristic(temp_service, _ENV_SENSE_TEMP_UUID, read=True, notify=True, max_len=50)
 
+add something like this later:
+# Badge with multiple fields
+alice_info = [1, 1, 3, 5, 8, 2]  # [major, degree, year, interest1, interest2, hobby]
+badge = Badge(alice_info, name="Alice's Badge")
+
+# Easy to add more fields later:
+extended_info = [1, 1, 3, 5, 8, 2, 10, 15]  # Added 2 more fields
