@@ -20,6 +20,14 @@ badges must be able to scan for other badges and their info, for that:
 // tis below will get this event data (addr_type, addr, adv_type, rssi, adv_data)
 1. ble.gap_scan(duration_ms, interval_us=1280000, window_us=11250, active=False) 
 
-field, majors
-embedded, ml, etc.
+
+The default size of write is 20. If u remote to write more than 20 bytes. Just write to local char.
+Example when using aioble module:
+char.write(bytes( 64))
+this should increase that char to received upto 64 bytes.
+
+In the latest version of aioble you can also use BufferedCharacteristic(..., max_len=N) in place of Characteristic(...) when registering. i.e. if your code previously had
+temp_char = aioble.Characteristic(temp_service, _ENV_SENSE_TEMP_UUID, read=True, notify=True)
+you can now do
+temp_char = aioble.BufferedCharacteristic(temp_service, _ENV_SENSE_TEMP_UUID, read=True, notify=True, max_len=50)
 

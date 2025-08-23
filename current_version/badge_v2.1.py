@@ -35,6 +35,7 @@ class Badge:
         #set info attributes
         self.set_major = major
         self.set_degree = degree
+        self.set_name = "AAAAAAAAAA"
 
         #set and registed service and characteristics
         self.badge_service = aioble.Service(_BADGE_UUID)
@@ -58,7 +59,7 @@ class Badge:
         async with aioble.scan(5000, interval_us=30000, window_us=30000, active=True) as scanner:
             async for result in scanner:
                 if _BADGE_UUID in result.services():
-                    print(f"Found device: {result.device}")
+                    print(f"Found device: {result.name()} {result.device}")
                     return result.device
         return None
 
@@ -68,7 +69,7 @@ class Badge:
             #this block starts advertising and continues ONLY WHEN the connection is established
             async with await aioble.advertise(
                 _ADV_INTERVAL_MS,
-                name="WHY IS THIS NOT DISPLAYING",
+                name=self.set_name,
                 services=[_BADGE_UUID],
                 appearance=0,
             ) as connection:
@@ -135,7 +136,7 @@ class Badge:
 
                 if self.check_match(degree, major) == 1:
                     #the writing needs to be changed
-                    self.match_connection_characteristic.write(encode((major, degree))
+                    self.match_connection_characteristic.write(_encode(major, degree))
                     pin.on()
                     sleep(1) # sleep 1sec
                     pin.off()
