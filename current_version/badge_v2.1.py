@@ -1,3 +1,4 @@
+
 import bluetooth
 import aioble
 import asyncio
@@ -31,11 +32,13 @@ def _decode1(message):
 
 
 class Badge:
-    def __init__(self, major, degree, name):
+    def __init__(self, major, degree, badgename, uni):
         #set info attributes
         self.set_major = major
         self.set_degree = degree
-        self.set_name = name
+        self.set_uni = uni
+        #self.set_name = name
+        self.set_badgename = badgename
 
         #set and registed service and characteristics
         self.badge_service = aioble.Service(_BADGE_SERVICE_UUID)
@@ -69,7 +72,7 @@ class Badge:
             #this block starts advertising and continues ONLY WHEN the connection is established
             async with await aioble.advertise(
                 _ADV_INTERVAL_MS,
-                name=self.set_name,
+                name=self.set_badgename,
                 services=[_BADGE_SERVICE_UUID],
                 appearance=0,
             ) as connection:
@@ -134,7 +137,12 @@ class Badge:
                 print("Major: ", major)
                 await asyncio.sleep_ms(1000)
 
-                if self.check_match(degree, major) == 1:
+                uni = await self.info_connection_characteristic.read()
+                uni = _decode1(uni)
+                print("University: ", uni)
+                await asyncio.sleep_ms(1000)
+
+                if self.check_match(degree, major, uni) == 1:
                     #the writing needs to be changed
                     self.match_connection_characteristic.write(_encode(major, degree))
                     pin.on()
@@ -142,14 +150,16 @@ class Badge:
                     pin.off()
                     print("Finished.")
 
-    def check_match(self, degree, major):
+    def check_match(self, degree, major, uni):
         match = 0
         if degree == self.set_degree:
             match += 1
         if major == self.set_major:
             match += 1
+        if uni == self.set_uni:
+            match += 1
 
-        if match == 2:
+        if match >= 2:
             print("Good match!")
             return 1
         else:
@@ -161,6 +171,8 @@ class Badge:
         advertise = asyncio.create_task(self.advertise())
 
         #run it twice to make sure
+        await asyncio.sleep_ms(200)
+        await self.evaluate_connection()
         await self.evaluate_connection()
         await self.evaluate_connection()
 
@@ -168,7 +180,7 @@ class Badge:
         await advertise
 
 async def main():
-    badge = Badge(0, 0, "this is a test")
+    badge = Badge(0, 0, "BBBB", "UW")
     await badge.run_task()
 
 asyncio.run(main())
