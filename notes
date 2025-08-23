@@ -7,14 +7,13 @@ badge must be able to read the stored info, consider the following:
 2. ble.gattc_read(conn_handle, value_handle)
 
 //maybe store the match value somewhere and change it like how we have the SEAL rank 
-and evaluate the match (return the response):
+and then process the match (return the response):
 1. ble.gattc_write(conn_handle, value_handle, data, mode=0)
 
 to set the values:
 1. ble.gatts_write(value_handle, data, send_update=False)	
 
-""" conection """
-badges must be able to advertise their info, for that:
+conection:
 1. ble.gap_advertise(interval_us, adv_data=None, *, resp_data=None, connectable=True)
 
 badges must be able to scan for other badges and their info, for that:

@@ -5,7 +5,6 @@ import asyncio
 
 ble = bluetooth.BLE()
 ble.active(True)
-#test
 
 #list of events and their constants 
 from micropython import const
