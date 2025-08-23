@@ -6,7 +6,7 @@ from machine import Pin
 from utime import sleep
 
 
-_BADGE_UUID = bluetooth.UUID("6a94195c-98ff-4f26-9140-bc341ca1a88c")
+_BADGE_SERVICE_UUID = bluetooth.UUID("6a94195c-98ff-4f26-9140-bc341ca1a88c")
 _INFO_CHAR_UUID = bluetooth.UUID("aa01b013-dcea-4880-9d89-a47e76c69c3c")
 _MATCH_CHAR_UUID = bluetooth.UUID("2aca7f5b-02b7-4232-a5f0-56cb9155be7a")
 
@@ -38,7 +38,7 @@ class Badge:
         self.set_name = name
 
         #set and registed service and characteristics
-        self.badge_service = aioble.Service(_BADGE_UUID)
+        self.badge_service = aioble.Service(_BADGE_SERVICE_UUID)
         self.info_characteristic = aioble.Characteristic(
             self.badge_service, _INFO_CHAR_UUID, read=True, notify=True
         )
@@ -58,7 +58,7 @@ class Badge:
     async def find_other(self):
         async with aioble.scan(5000, interval_us=30000, window_us=30000, active=True) as scanner:
             async for result in scanner:
-                if _BADGE_UUID in result.services():
+                if _BADGE_SERVICE_UUID in result.services():
                     print(f"Found device: {result.name()} {result.device}")
                     return result.device
         return None
@@ -70,7 +70,7 @@ class Badge:
             async with await aioble.advertise(
                 _ADV_INTERVAL_MS,
                 name=self.set_name,
-                services=[_BADGE_UUID],
+                services=[_BADGE_SERVICE_UUID],
                 appearance=0,
             ) as connection:
                 #word "connection" is just a way of naming whatever this function returns
