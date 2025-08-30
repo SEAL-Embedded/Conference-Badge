@@ -59,13 +59,13 @@ class Badge:
     def __init__(self, info_array, badgename, name=None):
         #set info attributes
         self.info = info_array
-        self.set_major = info_array[0] #if len(info_array) > 0 else 0
+        '''self.set_major = info_array[0] #if len(info_array) > 0 else 0
         self.set_degree = info_array[1] #if len(info_array) > 1 else 0
-        self.set_uni = info_array[2] #if len(info_array) > 2 else 0
+        self.set_uni = info_array[2] #if len(info_array) > 2 else 0 '''
         
         #self.set_name = name
         self.set_badgename = badgename
-        self.name = name or f"Badge-{self.set_major}-{self.set_degree}"
+        self.name = name 
         #set a dictionary to store active devices
         self.active_trackers = {}
         self.is_scanning = False
@@ -74,8 +74,8 @@ class Badge:
 
         #some error handling:
         self.result_of_search = None
-        self.connected_device = None
-
+        self.device_addr_adv = None
+        self.device_addr_scan = None
         #set and registed service and characteristics
         self.badge_service = aioble.Service(_BADGE_SERVICE_UUID)
         self.info_characteristic = aioble.Characteristic(
@@ -121,7 +121,7 @@ class Badge:
             ) as connection:
                 #word "connection" is just a way of naming whatever this function returns
                 print("Advertising found connection!, from:", connection.device)
-                self.device_addr_adv = connection.device
+                self.device_addr_adv = str(connection.device)
                 self.result_of_search = await self.evaluate_connection(connection)
 #get the device address from the first connection and then update the rssi with a separate(!) scanning funciton
 #store the connected addresses in the already_connected set, pull one you are working with rn to a changing variable 
@@ -133,10 +133,10 @@ class Badge:
     def get_address(self):
         addr_scan = self.device_addr_scan
         addr_adv = self.device_addr_adv
-        if addr_scan == addr_adv:
-            return str(addr_scan)
-        else: #error hereeeeeeeeeeee
+        if addr_scan == None:
             return str(addr_adv)
+        else: #error hereeeeeeeeeeee
+            return str(addr_scan)
 
     #reads the info + gives feedback, uses the device from find_other method
     async def get_connection(self):
@@ -229,7 +229,8 @@ class Badge:
             try:
                 async with aioble.scan(5000, interval_us=30000, window_us=30000, active=True) as scanner:
                     async for result in scanner:
-                        if str(result.device) == addr:
+                        if str(result.device) == str(addr):
+                            print(str(addr), str(result.device))
                             current_rssi = result.rssi
                             print(f"Found targeted device! RSSI: {result.rssi}")
                             
@@ -259,7 +260,8 @@ class Badge:
         if connection:
             self.result_of_search = await self.evaluate_connection(connection)
         await asyncio.sleep_ms(5000)
-        addr = self.get_address
+        addr = self.get_address()
+        print(str(addr))
         if self.result_of_search:
             await self.search_with_scan(addr, -45, 20)
         
@@ -267,7 +269,8 @@ class Badge:
         await advertise
 
 async def main():
-    badge = Badge([1, 2, 0], "AAAAA", "Olga")
+    badge = Badge([1, 2, 0], "AAAAA")
     await badge.run_task()
 
 asyncio.run(main())
+
