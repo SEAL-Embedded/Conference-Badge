@@ -16,6 +16,7 @@ _ADV_INTERVAL_MS = 250_000
 
 #get the LED
 pin = Pin("LED", Pin.OUT)
+switch = Pin(14, Pin.IN, Pin.PULL_DOWN)  # GP14 connected to switch
 
 ''' legend for the "roles" (?):
 degree = o if hs
@@ -86,6 +87,11 @@ class Badge:
 
     #reads the info + gives feedback, uses the device from find_other method
     async def evaluate_connection(self):
+
+        #if not switch.value():  
+            #print("Switch off, skipping scan")
+            #return  # skip scanning and connection if the switch is off (GET RID OF THIS IF YOU'RE NOT USING A SWITCH
+        
 
         device = await self.find_other()
         if not device:
@@ -161,6 +167,10 @@ class Badge:
 
         if match >= 2:
             print("Good match!")
+            # Set GP15 as output pin
+            led = Pin(15, Pin.OUT)
+            led.value(10)   # LED on
+            time.sleep(1)  # wait 1 second
             return 1
         else:
             print("Bad match")
