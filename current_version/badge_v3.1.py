@@ -184,14 +184,10 @@ class Badge:
             await asyncio.sleep_ms(1000)
 
             if self.check_match(read_info) == 1:
-                #this writing needs to be changed
-                self.match_connection_characteristic.write(1)
+                #this writing is never used
+                self.match_connection_characteristic.write()
                 led.on()
                 sleep(1) # sleep 1sec
-                led.off()
-                sleep(1)
-                led.on()
-                sleep(1)
                 led.off()
                 print("Finished evaluating connection.")
 
@@ -225,7 +221,8 @@ class Badge:
         else:
             print("Bad match")
             return 0
-        
+
+
     def humanize_rssi(self, rssi):
         if rssi > -40:
             return "RIGHT NEXT TO YOU!"
@@ -240,7 +237,6 @@ class Badge:
         else:
             return "Far away (> 8m)"
             
-
     async def search_with_scan(self, addr, target_rssi, timeout_s):
         
         print("Starting to track")
@@ -257,9 +253,12 @@ class Badge:
                             
                             if current_rssi > target_rssi:
                                 print("Target reached!")
+#------------------------------ add a cool flash from LED to celebrate maybe?
                                 return True
                             
                             print(f"Humanized rssi: {self.humanize_rssi(current_rssi)}")
+#-------------------------- based on the rssi, light up different colors: for 2-3 meters red/green, for 4-6 meters yellow, 
+#-------------------------- for 7-10 meters green/red, for > 11 blue
                             break
                 await asyncio.sleep_ms(1000)  # Wait between scan cycles
             
@@ -277,6 +276,7 @@ class Badge:
         await asyncio.sleep_ms(200)
 
         #this should be ran on demand!!!
+#------ make a loop that will run util the power is turned off, add a condition of when the switch is turned on, then run the following:
         connection = await self.get_connection()
         if connection:
             self.result_of_search = await self.evaluate_connection(connection)
@@ -287,6 +287,8 @@ class Badge:
             await self.search_with_scan(addr, -45, 20)
         await asyncio.sleep_ms(10000)
         await self.search_with_scan(addr, -45, 20)
+        #this is the end of the loop^
+
         #does advertising forever
         await advertise
 
