@@ -15,6 +15,7 @@ _ADV_INTERVAL_MS = 250_000
 
 #get the LED
 led = Pin("LED", Pin.OUT)
+switch = Pin(14, Pin.IN, Pin.PULL_DOWN)  # GP14 connected to switch
 
 ''' legend for the "roles" (?):
 degree = o if hs
@@ -161,6 +162,12 @@ class Badge:
             return
             
     async def evaluate_connection(self, connection):
+
+        if not switch.value():  
+            print("Switch off, skipping scan")
+            return  # skip scanning and connection if the switch is off (GET RID OF THIS IF YOU'RE NOT USING A SWITCH)
+        
+
         try:
             self.badge_connection_service = await connection.service(_BADGE_SERVICE_UUID)
 
@@ -192,6 +199,7 @@ class Badge:
                 print("Finished evaluating connection.")
 
             #think about it...
+            await asyncio.sleep_ms(200)
             await connection.disconnect()
             print("Disconnected from device")
             print()
@@ -217,6 +225,10 @@ class Badge:
 
         if match >= 2:
             print("Good match!")
+            #Set GP15 as output pin
+            led = Pin(15, Pin.OUT)
+            led.value(10)   # LED on
+            time.sleep(1)  # wait 1 second
             return 1
         else:
             print("Bad match")
@@ -224,18 +236,55 @@ class Badge:
 
 
     def humanize_rssi(self, rssi):
-        if rssi > -40:
-            return "RIGHT NEXT TO YOU!"
-        elif rssi > -50:
-            return "Very close (< 1m)"
-        elif rssi > -60:
-            return "Close (1-2m)"
-        elif rssi > -70:
-            return "Getting closer (2-3m)"
+        if rssi > -50:
+            print("Very close (< 1m)")
+            return 1
+        elif rssi > -65:
+            print("Close (1-2m)")
+            return 2
         elif rssi > -80:
-            return "Medium distance (3-8m)"
+            print("Getting closer (2-3m)")
+            return 3
+        elif rssi > -95:
+            print("Medium distance (3-8m)")
+            return 4
         else:
-            return "Far away (> 8m)"
+            print("Far away (> 8m)")
+            return 5
+
+    async def get_distance_feedback(self, rssi):
+#-------------------------- based on the rssi, light up different colors: for 2-3 meters red/green, for 4-6 meters yellow, 
+#-------------------------- for 7-10 meters green/red, for > 11 blue
+        if self.humanize_rssi(rssi) == 1:
+            #something like flashing green
+            led.on
+            await asyncio.sleep_ms(200)
+            led.off
+
+        elif self.humanize_rssi(rssi) == 2:
+            #something like long green
+            led.on
+            await asyncio.sleep_ms(200)
+            led.off
+
+        elif self.humanize_rssi(rssi) == 3:
+            #something like a flashing yellow
+            led.on
+            await asyncio.sleep_ms(200)
+            led.off
+
+        elif self.humanize_rssi(rssi) == 4:
+            #something like a solid yellow
+            led.on
+            await asyncio.sleep_ms(200)
+            led.off
+
+        elif self.humanize_rssi(rssi) == 5:
+            #something like a solid red, maybe actually if detects then maybe flashing red, otherwise - solid.
+            led.on
+            await asyncio.sleep_ms(200)
+            led.off
+        
             
     async def search_with_scan(self, addr, target_rssi, timeout_s):
         
@@ -256,9 +305,10 @@ class Badge:
 #------------------------------ add a cool flash from LED to celebrate maybe?
                                 return True
                             
-                            print(f"Humanized rssi: {self.humanize_rssi(current_rssi)}")
-#-------------------------- based on the rssi, light up different colors: for 2-3 meters red/green, for 4-6 meters yellow, 
-#-------------------------- for 7-10 meters green/red, for > 11 blue
+                            print(f"Humanized rssi: {self.humanize_rssi(current_rssi)}m")
+                            #moved into a separate function:
+                            #call self.get_distance_feedback(current_rssi) for lights
+                            
                             break
                 await asyncio.sleep_ms(1000)  # Wait between scan cycles
             
@@ -283,9 +333,19 @@ class Badge:
         await asyncio.sleep_ms(5000)
         addr = self.get_address()
         print(str(addr))
-        if self.result_of_search:
-            await self.search_with_scan(addr, -45, 20)
+        
+        #ERROR IS HERE!!! Below! Just changed this:
+
+        #if self.result_of_search:
+        #    await self.search_with_scan(addr, -45, 20)
+        
         await asyncio.sleep_ms(10000)
+        await self.search_with_scan(addr, -45, 20)
+        #lets do it again:
+        led.on  
+        sleep(1)  
+        led.off
+        await asyncio.sleep_ms(200)
         await self.search_with_scan(addr, -45, 20)
         #this is the end of the loop^
 
