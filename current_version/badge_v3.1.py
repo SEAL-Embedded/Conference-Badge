@@ -15,7 +15,9 @@ _ADV_INTERVAL_MS = 250_000
 
 #get the LED
 led = Pin("LED", Pin.OUT)
-switch = Pin(14, Pin.IN, Pin.PULL_DOWN)  # GP14 connected to switch
+led1 = Pin(15, Pin.OUT)   
+led2 = Pin(14, Pin.OUT)
+#switch = Pin(14, Pin.IN, Pin.PULL_DOWN)  # GP14 connected to switch
 
 ''' legend for the "roles" (?):
 degree = o if hs
@@ -163,9 +165,9 @@ class Badge:
             
     async def evaluate_connection(self, connection):
 
-        if not switch.value():  
-            print("Switch off, skipping scan")
-            return  # skip scanning and connection if the switch is off (GET RID OF THIS IF YOU'RE NOT USING A SWITCH)
+        #if not switch.value():  
+            #print("Switch off, skipping scan")
+            #return  # skip scanning and connection if the switch is off (GET RID OF THIS IF YOU'RE NOT USING A SWITCH)
         
 
         try:
