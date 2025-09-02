@@ -195,9 +195,9 @@ class Badge:
             if self.check_match(read_info) == 1:
                 #this writing is never used
                 self.match_connection_characteristic.write()
-                led.on()
+                led.value(1)()
                 sleep(1) # sleep 1sec
-                led.off()
+                led.value(0)()
                 print("Finished evaluating connection.")
 
             #think about it...
@@ -259,33 +259,33 @@ class Badge:
 #-------------------------- for 7-10 meters green/red, for > 11 blue
         if self.humanize_rssi(rssi) == 1:
             #something like flashing green
-            led1.on
+            led1.value(1)
             await asyncio.sleep_ms(200)
-            led1.off
+            led1.value(0)
 
         elif self.humanize_rssi(rssi) == 2:
             #something like long green
-            led1.on
+            led1.value(1)
             await asyncio.sleep_ms(200)
-            led1.off
+            led1.value(0)
 
         elif self.humanize_rssi(rssi) == 3:
             #something like a flashing yellow
-            led1.on
+            led1.value(1)
             await asyncio.sleep_ms(200)
-            led1.off
+            led1.value(0)
 
         elif self.humanize_rssi(rssi) == 4:
             #something like a solid yellow
-            led1.on
+            led1.value(1)
             await asyncio.sleep_ms(200)
-            led1.off
+            led1.value(0)
 
         elif self.humanize_rssi(rssi) == 5:
             #something like a solid red, maybe actually if detects then maybe flashing red, otherwise - solid.
-            led2.on
+            led2.value(1)
             await asyncio.sleep_ms(200)
-            led2.off
+            led2.value(0)
         
             
     async def search_with_scan(self, addr, target_rssi, timeout_s):
@@ -308,8 +308,7 @@ class Badge:
                                 return True
                             
                             print(f"Humanized rssi: {self.humanize_rssi(current_rssi)}m")
-                            #moved into a separate function:
-                            #call self.get_distance_feedback(current_rssi) for lights
+                            await self.get_distance_feedback(current_rssi)
                             
                             break
                 await asyncio.sleep_ms(1000)  # Wait between scan cycles
@@ -344,9 +343,9 @@ class Badge:
         await asyncio.sleep_ms(10000)
         await self.search_with_scan(addr, -45, 20)
         #lets do it again:
-        led.on  
+        led.value(1)  
         sleep(1)  
-        led.off
+        led.value(0)
         await asyncio.sleep_ms(200)
         await self.search_with_scan(addr, -45, 20)
         #this is the end of the loop^
