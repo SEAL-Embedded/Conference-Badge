@@ -259,33 +259,33 @@ class Badge:
 #-------------------------- for 7-10 meters green/red, for > 11 blue
         if self.humanize_rssi(rssi) == 1:
             #something like flashing green
-            led.on
+            led1.on
             await asyncio.sleep_ms(200)
-            led.off
+            led1.off
 
         elif self.humanize_rssi(rssi) == 2:
             #something like long green
-            led.on
+            led1.on
             await asyncio.sleep_ms(200)
-            led.off
+            led1.off
 
         elif self.humanize_rssi(rssi) == 3:
             #something like a flashing yellow
-            led.on
+            led1.on
             await asyncio.sleep_ms(200)
-            led.off
+            led1.off
 
         elif self.humanize_rssi(rssi) == 4:
             #something like a solid yellow
-            led.on
+            led1.on
             await asyncio.sleep_ms(200)
-            led.off
+            led1.off
 
         elif self.humanize_rssi(rssi) == 5:
             #something like a solid red, maybe actually if detects then maybe flashing red, otherwise - solid.
-            led.on
+            led2.on
             await asyncio.sleep_ms(200)
-            led.off
+            led2.off
         
             
     async def search_with_scan(self, addr, target_rssi, timeout_s):
