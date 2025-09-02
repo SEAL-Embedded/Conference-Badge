@@ -20,7 +20,7 @@ _ADV_INTERVAL_MS = 250_000
 led = Pin("LED", Pin.OUT)
 led1 = Pin(15, Pin.OUT)   
 led2 = Pin(14, Pin.OUT)
-#switch = Pin(14, Pin.IN, Pin.PULL_DOWN)  # GP14 connected to switch
+switch = Pin(13, Pin.IN, Pin.PULL_DOWN)  # GP14 connected to switch
 
 ''' legend for the "roles" (?):
 degree = o if hs
@@ -168,9 +168,8 @@ class Badge:
             
     async def evaluate_connection(self, connection):
 
-        #if not switch.value():  
-            #print("Switch off, skipping scan")
-            #return  # skip scanning and connection if the switch is off (GET RID OF THIS IF YOU'RE NOT USING A SWITCH)
+        
+
         
 
         try:
@@ -328,34 +327,36 @@ class Badge:
     async def run_task(self):
         await self.setup_task()
         advertise = asyncio.create_task(self.advertise())
+        while True:
+            
+            await asyncio.sleep_ms(200)
+            if not switch.value():  
+                print("Switch off, skipping scan")
+                #this should be ran on demand!!!
+        #------ make a loop that will run util the power is turned off, add a condition of when the switch is turned on, then run the following:
+                connection = await self.get_connection()
+                if connection:
+                    self.result_of_search = await self.evaluate_connection(connection)
+                await asyncio.sleep_ms(5000)
+                addr = self.get_address()
+                print(str(addr))
+                
+                #ERROR IS HERE!!! Below! Just changed this:
 
-        await asyncio.sleep_ms(200)
+                #if self.result_of_search:
+                #    await self.search_with_scan(addr, -45, 20)
+                
+                await asyncio.sleep_ms(5000)
+                await self.search_with_scan(addr, -45, 20)
+                #lets do it again:
+                led.on  
+                sleep(1)  
+                led.off
+                await asyncio.sleep_ms(200)
+                await self.search_with_scan(addr, -45, 20)
+                #this is the end of the loop^
 
-        #this should be ran on demand!!!
-#------ make a loop that will run util the power is turned off, add a condition of when the switch is turned on, then run the following:
-        connection = await self.get_connection()
-        if connection:
-            self.result_of_search = await self.evaluate_connection(connection)
-        await asyncio.sleep_ms(5000)
-        addr = self.get_address()
-        print(str(addr))
-        
-        #ERROR IS HERE!!! Below! Just changed this:
-
-        #if self.result_of_search:
-        #    await self.search_with_scan(addr, -45, 20)
-        
-        await asyncio.sleep_ms(5000)
-        await self.search_with_scan(addr, -45, 20)
-        #lets do it again:
-        led.on  
-        sleep(1)  
-        led.off
-        await asyncio.sleep_ms(200)
-        await self.search_with_scan(addr, -45, 20)
-        #this is the end of the loop^
-
-        #does advertising forever
+                #does advertising forever
         await advertise
 
 async def main():
