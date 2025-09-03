@@ -129,10 +129,6 @@ class Badge:
                 print("Advertising found connection!, from:", connection.device)
                 self.device_addr_adv = str(connection.device)
                 self.result_of_search = await self.evaluate_connection(connection)
-#get the device address from the first connection and then update the rssi with a separate(!) scanning funciton
-#store the connected addresses in the already_connected set, pull one you are working with rn to a changing variable 
-#then: each scanning gives one rssi and returns nothing until the rssi is good enough, this should probably be ran 
-#as shown in the example code in the notes
 
                 await connection.disconnected(timeout_ms=None)
     
@@ -166,11 +162,7 @@ class Badge:
             print("Timeout during connection")
             return
             
-    async def evaluate_connection(self, connection):
-
-        
-
-        
+    async def evaluate_connection(self, connection):        
 
         try:
             self.badge_connection_service = await connection.service(_BADGE_SERVICE_UUID)
@@ -229,10 +221,6 @@ class Badge:
 
         if match >= 2:
             print("Good match!")
-            #Set GP15 as output pin
-            #led = Pin(15, Pin.OUT)
-            #led.value(10)   # LED on
-            time.sleep(1)  # wait 1 second
             return 1
         else:
             print("Bad match")
@@ -310,11 +298,10 @@ class Badge:
                                 return True
                             
                             print(f"Humanized rssi: {self.humanize_rssi(current_rssi)}m")
-                            #moved into a separate function:
-                            
+                            #lights
                             await self.get_distance_feedback(current_rssi) 
-                            
                             break
+                            
                 await asyncio.sleep_ms(1000)  # Wait between scan cycles
             
             except Exception as e:
