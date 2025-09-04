@@ -2,7 +2,7 @@
 # and lights up an LED depending on how close the other is. 
 
 from machine import Pin
-from utime import sleep, ticks_ms
+from utime import sleep
 import bluetooth
 import aioble
 import asyncio
@@ -16,7 +16,7 @@ _MATCH_CHAR_UUID = bluetooth.UUID("2aca7f5b-02b7-4232-a5f0-56cb9155be7a")
 # How frequently to send advertising beacons.
 _ADV_INTERVAL_MS = 250_000
 
-#get the LED
+#get the LEDs
 led = Pin("LED", Pin.OUT)
 led1 = Pin(15, Pin.OUT)   
 led2 = Pin(14, Pin.OUT)
@@ -39,27 +39,11 @@ def decode_info(message):
     format_str = "<" + "h" * num_fields
     return list(struct.unpack(format_str, message))
 
-class ProximityTracker:
-    def __init__(self, target_device, initial_rssi):
-        self.target_device = target_device
-        self.current_rssi = initial_rssi
-        self.is_tracking = True
-        self.last_seen = ticks_ms()
-        self.connection = None
-        
-    def update_rssi(self, rssi):
-        self.current_rssi = rssi
-        self.last_seen = ticks_ms()
-
-    def get_distance_status(self):
-        #Distance = 10^((Measured Power - Instant RSSI)/(10*N))
-        distance = 10**(-(-59 - self.current_rssi)/(10*2.5))
-        return str(distance)
-    
-    def should_disconnect(self):
-        # Disconnect if RSSI is very strong (< 1 meter) or haven't seen in 30 seconds
-        time_since_seen = ticks_ms() - self.last_seen
-        return self.current_rssi > -50 or time_since_seen > 30000
+#this needs attention, also see humanize_rssi
+def get_distance_status(self):
+    #Distance = 10^((Measured Power - Instant RSSI)/(10*N))
+    distance = 10**(-(-59 - self.current_rssi)/(10*2.5))
+    return str(distance)
 
 class Badge:
     def __init__(self, info_array, badgename, name=None):
@@ -72,27 +56,28 @@ class Badge:
         #self.set_name = name
         self.set_badgename = badgename
         self.name = name 
-        #set a dictionary to store active devices
+
+        #debugging for now (set a dictionary to store active devices)
         self.active_trackers = {}
         self.is_scanning = False
 
+#------ this needs attention, see also find_other
         self.already_connected = set()
 
-        #some error handling:
+        #result_of_search is set in the advertising or in the run_task methods, is assigned a value from evaluate_connection
         self.result_of_search = None
+        
+        #initial set up
         self.device_addr_adv = None
         self.device_addr_scan = None
+
         #set and registed service and characteristics
         self.badge_service = aioble.Service(_BADGE_SERVICE_UUID)
-        self.info_characteristic = aioble.Characteristic(
-            self.badge_service, _INFO_CHAR_UUID, read=True, notify=True
-        )
-        self.match_characteristic = aioble.Characteristic(
-            self.badge_service, _MATCH_CHAR_UUID, read=True, write=True, notify=True
-        )
+        self.info_characteristic = aioble.Characteristic(self.badge_service, _INFO_CHAR_UUID, read=True, notify=True)
+
         aioble.register_services(self.badge_service)
 
-    #set the info in the characteristic:
+    #writes the array with information in the info_characteristic
     async def setup_task(self):
         await asyncio.sleep_ms(1000)
         information = encode_info(self.info)
@@ -100,14 +85,15 @@ class Badge:
         print(f"Badge {self.set_badgename} is set up.")
         await asyncio.sleep_ms(1000)
 
-    #scanning method
+    #scans for the other badges, returns device. (also stores the address of the found device in a set)
     async def find_other(self):
         async with aioble.scan(5000, interval_us=30000, window_us=20000, active=True) as scanner:
             async for result in scanner:
-                if _BADGE_SERVICE_UUID in result.services():
+                if _BADGE_SERVICE_UUID in result.services(): #*if it's a badge:
                     self.device_addr_scan = str(result.device) #hereeeeeeeeeee
-                    current_rssi = result.rssi
                     print(f"Found device: {result.name()} RSSI: {result.rssi}")
+
+#------------------ this needs attention.
                     if self.device_addr_scan in self.already_connected:
                         continue
                     else:
@@ -115,7 +101,7 @@ class Badge:
                         return result.device
         return None
 
-    #advertises all the time excluding the connection 
+    #advertises all the time (!)excluding(!) the connection 
     async def advertise(self):
         while True:
             #this block starts advertising and continues ONLY WHEN the connection is established
@@ -132,21 +118,30 @@ class Badge:
 
                 await connection.disconnected(timeout_ms=None)
     
+    #compares two addresses from scan/adv and returns a str address of the found device. (?sets addresses to None after?)
     def get_address(self):
         addr_scan = self.device_addr_scan
         addr_adv = self.device_addr_adv
         if addr_scan == None:
+            #idk this might be unnecessary debugging
+            #set both addresses to None so that next time it goes from the same state
+            self.device_addr_scan = None
+            self.device_addr_adv = None
             return str(addr_adv)
-        else: #error hereeeeeeeeeeee
+        else: 
+            #idk this might be unnecessary debugging
+            #set both addresses to None so that next time it goes from the same state
+            self.device_addr_scan = None
+            self.device_addr_adv = None
             return str(addr_scan)
 
-    #reads the info + gives feedback, uses the device from find_other method
+    #tries to get connection from find_other() and returns connection or None
     async def get_connection(self):
 
         device = await self.find_other()
         if not device:
             print("Device from find_other() was not found")
-            return
+            return None
         
         #connecting
         try:
@@ -156,21 +151,24 @@ class Badge:
                 return connection                      
             else:
                 print("Connection not found")
-                return
+                return None
             
         except asyncio.TimeoutError:
             print("Timeout during connection")
-            return
-            
+            return None
+
+    #given the connection reads the characteristic and returns True only if the found match is good      
     async def evaluate_connection(self, connection):        
 
         try:
+            await asyncio.sleep_ms(200)
             self.badge_connection_service = await connection.service(_BADGE_SERVICE_UUID)
 
             if self.badge_connection_service is None:
                 print("Service not found!")
                 return False
-                
+            
+            #sometimes it goes here even though the service is not found
             self.info_connection_characteristic = await self.badge_connection_service.characteristic(_INFO_CHAR_UUID)
             print("Characteristic found successfully")
             self.match_connection_characteristic = await self.badge_connection_service.characteristic(_MATCH_CHAR_UUID)
@@ -186,21 +184,20 @@ class Badge:
             print("Information: ", read_info)
             await asyncio.sleep_ms(1000)
 
-            if self.check_match(read_info) == 1:
-                #this writing is never used
-                self.match_connection_characteristic.write()
+            #"immediatelly after" disconnect
+            await connection.disconnect()
+            print("Disconnected from device")
+
+            #prints if the match is good or not
+            if self.check_match(read_info):
                 led.on()
                 sleep(1) # sleep 1sec
                 led.off()
                 print("Finished evaluating connection.")
-
-            #think about it...
-            await asyncio.sleep_ms(200)
-            await connection.disconnect()
-            print("Disconnected from device")
-            print()
-
-            return True
+                return True
+            else:
+                print("Finished evaluating connection.")
+                return False
 
         except Exception as e:
             print(f"Unknown exception: {e}")
@@ -210,6 +207,7 @@ class Badge:
                 pass  # Ignore disconnection errors
             return False
 
+    #given the array of the found device compares the values and returns True for a good match
     def check_match(self, read_info):
         match = 0
         if read_info[0] == self.info[0]:
@@ -221,13 +219,14 @@ class Badge:
 
         if match >= 2:
             print("Good match!")
-            return 1
+            return True
         else:
             print("Bad match")
-            return 0
-
-
+            return False
+        
+    #returns a number that is assigned to different distances in meters
     def humanize_rssi(self, rssi):
+#------ this function needs a lot of work!!! The distance values it gives rn aren't good enough.
         if rssi > -50:
             print("Very close (< 1m)")
             return 1
@@ -243,49 +242,54 @@ class Badge:
         else:
             print("Far away (> 8m)")
             return 5
-
-    async def get_distance_feedback(self, rssi):
-#-------------------------- based on the rssi, light up different colors: for 2-3 meters red/green, for 4-6 meters yellow, 
-#-------------------------- for 7-10 meters green/red, for > 11 blue
-        if self.humanize_rssi(rssi) == 1:
+        
+    #based on the distance given, lights up different colors
+    async def get_distance_feedback(self, distance):
+#------ based on the rssi, light up different colors: for 2-3 meters red/green, for 4-6 meters yellow, 
+#------ for 7-10 meters green/red, for > 11 blue
+        if distance == 1:
             #something like flashing green
             led1.value(1)
             await asyncio.sleep_ms(200)
             led1.value(0)
 
-        elif self.humanize_rssi(rssi) == 2:
+        elif distance == 2:
             #something like long green
             led2.value(1)
             await asyncio.sleep_ms(200)
             led2.value(0)
 
-        elif self.humanize_rssi(rssi) == 3:
+        elif distance == 3:
             #something like a flashing yellow
             led1.value(1)
             await asyncio.sleep_ms(200)
             led1.value(0)
 
-        elif self.humanize_rssi(rssi) == 4:
+        elif distance == 4:
             #something like a solid yellow
             led1.value(1)
             await asyncio.sleep_ms(200)
             led1.value(0)
 
-        elif self.humanize_rssi(rssi) == 5:
-            #something like a solid red, maybe actually if detects then maybe flashing red, otherwise - solid.
+        elif distance == 5:
+            #something like a solid red, maybe if detects then flashing red, otherwise - solid.
             led2.value(1)
             await asyncio.sleep_ms(200)
             led2.value(0)
         
-            
-    async def search_with_scan(self, addr, target_rssi, timeout_s):
-        
+    #tracks the previously found match given its address      
+    async def search_with_scan(self, addr, timeout_s):
+
+        #this is a big claim, target rssi is def not -45, needs to be changed
+        target_rssi = -45
+
         print("Starting to track")
         start_time = time.time()
         print(f"Scanning for device proximity (target RSSI: {target_rssi})")
     
         while (time.time() - start_time) < timeout_s:
             try:
+                #it looks like the scanning goes too slowly, change the window+interval+duration
                 async with aioble.scan(5000, interval_us=30000, window_us=30000, active=True) as scanner:
                     async for result in scanner:
                         if str(result.device) == str(addr):
@@ -297,9 +301,12 @@ class Badge:
 #------------------------------ add a cool flash from LED to celebrate maybe?
                                 return True
                             
-                            print(f"Humanized rssi: {self.humanize_rssi(current_rssi)}m")
+                            #links to the function that gives a distance from the rssi
+                            distance = self.humanize_rssi(current_rssi)
+                            print(f"Distance value: {distance}m")
+
                             #lights
-                            await self.get_distance_feedback(current_rssi) 
+                            await self.get_distance_feedback(distance) 
                             break
                             
                 await asyncio.sleep_ms(1000)  # Wait between scan cycles
@@ -329,22 +336,22 @@ class Badge:
                 print(str(addr))
                 
                 #ERROR IS HERE!!! Below! Just changed this:
-
-                #if self.result_of_search:
-                #    await self.search_with_scan(addr, -45, 20)
                 
                 await asyncio.sleep_ms(5000)
-                await self.search_with_scan(addr, -45, 20)
+                await self.search_with_scan(addr, 20)
                 #lets do it again:
                 led.on  
                 sleep(1)  
                 led.off
                 await asyncio.sleep_ms(200)
-                await self.search_with_scan(addr, -45, 20)
+                await self.search_with_scan(addr, 20)
                 #this is the end of the loop^
 
                 #does advertising forever
         await advertise
+
+#the program should be ran until the match is found, else track and then the switch
+#get_address should not be run if the match is bad
 
 async def main():
     badge = Badge([1, 2, 0], "AAAAA")
