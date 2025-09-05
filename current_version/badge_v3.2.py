@@ -321,36 +321,39 @@ class Badge:
     async def run_task(self):
         await self.setup_task()
         advertise = asyncio.create_task(self.advertise())
+
         while True:
-            
             await asyncio.sleep_ms(200)
             if not switch.value():  
                 print("Switch off, skipping scan")
-                #this should be ran on demand!!!
-        #------ make a loop that will run util the power is turned off, add a condition of when the switch is turned on, then run the following:
+            else:
+                #fencepost 
                 connection = await self.get_connection()
                 if connection:
                     self.result_of_search = await self.evaluate_connection(connection)
-                await asyncio.sleep_ms(5000)
-                addr = self.get_address()
+
+                #go on until the match is found
+#-------------- the code is going down if the self.result_of_search is not set up correctly in the advertising function.
+                while not self.result_of_search:
+                    #this should be ran on demand!!!
+                    await asyncio.sleep_ms(2000)     #2 sec wait
+                    connection = await self.get_connection()
+                    if connection:
+                        self.result_of_search = await self.evaluate_connection(connection)
+                    addr = self.get_address()
+
+                #when they get the match, print the address
+                await asyncio.sleep_ms(500)
                 print(str(addr))
-                
-                #ERROR IS HERE!!! Below! Just changed this:
-                
-                await asyncio.sleep_ms(5000)
-                await self.search_with_scan(addr, 20)
-                #lets do it again:
-                led.on  
-                sleep(1)  
-                led.off
-                await asyncio.sleep_ms(200)
+
+#-------------- we could add such feature that it doesn't stop until the device is physically found 
+                #do the tracking thing
                 await self.search_with_scan(addr, 20)
                 #this is the end of the loop^
 
-                #does advertising forever
+        #does advertising forever (rn it doesn't run, but if we replace while True with something)
         await advertise
 
-#the program should be ran until the match is found, else track and then the switch
 #get_address should not be run if the match is bad
 
 async def main():
