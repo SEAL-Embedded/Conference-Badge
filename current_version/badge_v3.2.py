@@ -326,6 +326,8 @@ class Badge:
             await asyncio.sleep_ms(200)
             if not switch.value():  
                 print("Switch off, skipping scan")
+            #when the switch is on, find the device and track it, when done the loop is done.
+#---------- this needs to be discussed.
             else:
                 #fencepost 
                 connection = await self.get_connection()
