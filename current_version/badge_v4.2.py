@@ -254,27 +254,28 @@ class Badge:
     async def get_distance_feedback(self, rssi):
 #----- based on the rssi, light up different colors: for 2-3 meters red/green, for 4-6 meters yellow, 
 #----- for 7-10 meters green/red, for > 11 blue
-        if self.humanize_rssi(rssi) == 1:
+        result = self.humanize_rssi(rssi)
+        if result == 1:
             #something like flashing green
             led_color(1, 0, 0)  # Green
             await asyncio.sleep_ms(200)
 
-        elif self.humanize_rssi(rssi) == 2:
+        elif result == 2:
             #something like long green
             led_color(1, 0, 1)  # Yellow
             await asyncio.sleep_ms(200)
 
-        elif self.humanize_rssi(rssi) == 3:
+        elif result == 3:
             #something like a flashing yellow
             led_color(1, 1, 0)  # Cyan
             await asyncio.sleep_ms(200)
 
-        elif self.humanize_rssi(rssi) == 4:
+        elif result == 4:
             #something like a solid yellow
             led_color(0, 1, 0)  # Blue
             await asyncio.sleep_ms(200)
 
-        elif self.humanize_rssi(rssi) == 5:
+        elif result == 5:
             #something like a solid red, maybe actually if detects then maybe flashing red, otherwise - solid.
             led_color(0, 0, 1)  # Red
             await asyncio.sleep_ms(200)        
@@ -332,7 +333,7 @@ class Badge:
             #    print("Switch is OFF — Pausing...")
             #    await asyncio.sleep_ms(500)
 
-            print("Switch is ON — Running proximity tasks.")
+            print("Switch is ON - Running proximity tasks.")
 
             connection = await self.get_connection()
             if connection:
@@ -340,19 +341,20 @@ class Badge:
 
             while not self.result_of_search:
                 if not switch.value():
-                    print("Switch turned OFF during matching — Pausing...")
+                    print("Switch turned OFF during matching - Pausing...")
                     break  # Break out of this loop if switch goes off
+
                 await asyncio.sleep_ms(2000)
                 connection = await self.get_connection()
                 if connection:
                     self.result_of_search = await self.evaluate_connection(connection)
-                    addr = self.get_address()
+            addr = self.get_address()
 
             #when they get the match, print the address
             await asyncio.sleep_ms(500)
             print(str(addr))
-
-            await self.search_with_scan(addr, 20)
+            if addr:
+                await self.search_with_scan(addr, 20)
             #this is the end of the loop^ it 
             addr = "" #debugging
 
