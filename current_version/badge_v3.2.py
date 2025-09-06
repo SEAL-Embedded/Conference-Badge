@@ -328,33 +328,31 @@ class Badge:
 
         while True:
             await asyncio.sleep_ms(200)
-            if not switch.value():  
-                print("Switch off, skipping scan")
+            #if not switch.value():  
+            #    print("Switch off, skipping scan")
             #when the switch is on, find the device and track it, when done the loop is done.
 #---------- this needs to be discussed.
-            else:
-                #fencepost 
+            #else:
+            #fencepost 
+            connection = await self.get_connection()
+            if connection:
+                self.result_of_search = await self.evaluate_connection(connection)
+            #go on until the match is found
+#-------------- the code is going down if the self.result_of_search is not set up correctly in the advertising function.
+            while not self.result_of_search:
+                #this should be ran on demand!!!
+                await asyncio.sleep_ms(2000)     #2 sec wait
                 connection = await self.get_connection()
                 if connection:
                     self.result_of_search = await self.evaluate_connection(connection)
+                addr = self.get_address()
 
-                #go on until the match is found
-#-------------- the code is going down if the self.result_of_search is not set up correctly in the advertising function.
-                while not self.result_of_search:
-                    #this should be ran on demand!!!
-                    await asyncio.sleep_ms(2000)     #2 sec wait
-                    connection = await self.get_connection()
-                    if connection:
-                        self.result_of_search = await self.evaluate_connection(connection)
-                    addr = self.get_address()
-
-                #when they get the match, print the address
-                await asyncio.sleep_ms(500)
-                print(str(addr))
-
+            #when they get the match, print the address
+            await asyncio.sleep_ms(500)
+            print(str(addr))
 #-------------- we could add such feature that it doesn't stop until the device is physically found 
                 #do the tracking thing
-                await self.search_with_scan(addr, 20)
+            await self.search_with_scan(addr, 20)
                 #this is the end of the loop^ it 
 
         #does advertising forever (rn it doesn't run, but if we replace while True with something)
