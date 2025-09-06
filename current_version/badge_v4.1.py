@@ -254,31 +254,31 @@ class Badge:
         if distance == 1:
             #something like flashing green
             led1.value(1)
-            await asyncio.sleep_ms(200)
+            await asyncio.sleep_ms(500)
             led1.value(0)
 
         elif distance == 2:
             #something like long green
             led2.value(1)
-            await asyncio.sleep_ms(200)
+            await asyncio.sleep_ms(500)
             led2.value(0)
 
         elif distance == 3:
             #something like a flashing yellow
             led1.value(1)
-            await asyncio.sleep_ms(200)
+            await asyncio.sleep_ms(500)
             led1.value(0)
 
         elif distance == 4:
             #something like a solid yellow
             led1.value(1)
-            await asyncio.sleep_ms(200)
+            await asyncio.sleep_ms(500)
             led1.value(0)
 
         elif distance == 5:
             #something like a solid red, maybe if detects then flashing red, otherwise - solid.
             led2.value(1)
-            await asyncio.sleep_ms(200)
+            await asyncio.sleep_ms(500)
             led2.value(0)
         
     #tracks the previously found match given its address      
