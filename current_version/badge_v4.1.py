@@ -94,11 +94,11 @@ class Badge:
                     print(f"Found device: {result.name()} RSSI: {result.rssi}")
 
 #------------------ this needs attention.
-                    if self.device_addr_scan in self.already_connected:
-                        continue
-                    else:
-                        self.already_connected.add(self.device_addr_scan)
-                        return result.device
+                    #if self.device_addr_scan in self.already_connected:
+                    #    continue
+                    #else:
+                    #    self.already_connected.add(self.device_addr_scan)
+                    #    return result.device
         return None
 
     #advertises all the time (!)excluding(!) the connection 
