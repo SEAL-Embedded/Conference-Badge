@@ -61,6 +61,8 @@ class Badge:
         self.set_degree = info_array[1] #if len(info_array) > 1 else 0
         self.set_uni = info_array[2] #if len(info_array) > 2 else 0 '''
         
+        self.addr = None
+        
         #self.set_name = name
         self.set_badgename = badgename
         self.name = name 
@@ -119,7 +121,7 @@ class Badge:
                 self.result_of_search = await self.evaluate_connection(connection)
 
 #-------------- error might be here, I just added this
-                self.addr = self.get_address()
+                #addr = self.get_address()
 
                 await connection.disconnected(timeout_ms=None)
     
@@ -288,9 +290,8 @@ class Badge:
         while (time.time() - start_time) < timeout_s:
             #when the switch is on, find the device and track it, when done the loop is done.
 #---------- this needs to be discussed.
-            if not switch.value():  
-                print("Switch off, skipping scan")
-            else:
+            #if not switch.value():  
+            #    print("Switch off, skipping scan")
                 try:
                     async with aioble.scan(5000, interval_us=30000, window_us=30000, active=True) as scanner:
                         async for result in scanner:
@@ -318,8 +319,8 @@ class Badge:
                     print(f"Error during proximity scanning: {e}")
                     await asyncio.sleep_ms(2000)
 
-            print("Proxiscanning timeout :(")
-            return False         
+                print("Proxiscanning timeout :(")
+                return False         
 
     async def run_task(self):
         await self.setup_task()
@@ -327,9 +328,9 @@ class Badge:
 
         while True:
             # Pause if the switch is OFF
-            while not switch.value():
-                print("Switch is OFF — Pausing...")
-                await asyncio.sleep_ms(500)
+            #while not switch.value():
+            #    print("Switch is OFF — Pausing...")
+            #    await asyncio.sleep_ms(500)
 
             print("Switch is ON — Running proximity tasks.")
 
@@ -345,15 +346,15 @@ class Badge:
                 connection = await self.get_connection()
                 if connection:
                     self.result_of_search = await self.evaluate_connection(connection)
-                    self.addr = self.get_address()
+                    addr = self.get_address()
 
             #when they get the match, print the address
             await asyncio.sleep_ms(500)
-            print(str(self.addr))
+            print(str(addr))
 
-            await self.search_with_scan(self.addr, 20)
+            await self.search_with_scan(addr, 20)
             #this is the end of the loop^ it 
-            self.addr = "" #debugging
+            addr = "" #debugging
 
             # Reset match result for the next loop
             self.result_of_search = None
