@@ -228,21 +228,25 @@ class Badge:
     def humanize_rssi(self, rssi):
 #------ this function needs a lot of work!!! The distance values it gives rn aren't good enough.
         if rssi > -50:
-            print("Very close (< 1m)")
+            print(f"Distance: {self.rssi_meters(rssi)}")
             return 1
         elif rssi > -65:
-            print("Close (1-2m)")
+            print(f"Distance: {self.rssi_meters(rssi)}")
             return 2
         elif rssi > -80:
-            print("Getting closer (2-3m)")
+            print(f"Distance: {self.rssi_meters(rssi)}")
             return 3
         elif rssi > -95:
-            print("Medium distance (3-8m)")
+            print(f"Distance: {self.rssi_meters(rssi)}")
             return 4
         else:
-            print("Far away (> 8m)")
+            print(f"Distance: {self.rssi_meters(rssi)}")
             return 5
-        
+    
+    #try this
+    def rssi_meters(self, rssi):
+        return f"{10**((-50-rssi)/(10*2.5))}m"
+    
     #based on the distance given, lights up different colors
     async def get_distance_feedback(self, distance):
 #------ based on the rssi, light up different colors: for 2-3 meters red/green, for 4-6 meters yellow, 
@@ -351,7 +355,7 @@ class Badge:
 #-------------- we could add such feature that it doesn't stop until the device is physically found 
                 #do the tracking thing
                 await self.search_with_scan(addr, 20)
-                #this is the end of the loop^
+                #this is the end of the loop^ it 
 
         #does advertising forever (rn it doesn't run, but if we replace while True with something)
         await advertise
