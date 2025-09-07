@@ -164,52 +164,54 @@ class Badge:
             return None
             
     async def evaluate_connection(self, connection):
-
-        try:
-            await asyncio.sleep_ms(200)
-            self.badge_connection_service = await connection.service(_BADGE_SERVICE_UUID)
-
-            if self.badge_connection_service is None:
-                print("Service not found!")
-                return False
-            
-            #sometimes it goes here even though the service is not found    
-            self.info_connection_characteristic = await self.badge_connection_service.characteristic(_INFO_CHAR_UUID)
-            print("Characteristic found successfully")
-
-        except asyncio.TimeoutError:
-            print("Timeout discovering services/characteristics")
-            return False
-            
-        try:
-            #when connected, read and decode
-            read_info = await self.info_connection_characteristic.read()
-            read_info = decode_info(read_info)
-            print("Information: ", read_info)
-            await asyncio.sleep_ms(1000)
-
-#---------- this is also new, watch out
-            #"immediatelly after" disconnect
-            await connection.disconnect()
-            print("Disconnected from device")
-
-            if self.check_match(read_info) == 1:
-                #this writing is never used
-                led.on()
-                sleep(1) # sleep 1sec
-                led.off()
-                print("Finished evaluating connection.")
-                return True
-            else:
-                print("Finished evaluating connection.")
-                return False
-
-        except Exception as e:
-            print(f"Unknown exception: {e}")
+        if connection.is_connected():
             try:
+                await asyncio.sleep_ms(200)
+                self.badge_connection_service = await connection.service(_BADGE_SERVICE_UUID)
+
+                if self.badge_connection_service is None:
+                    print("Service not found!")
+                    return False
+                
+                #sometimes it goes here even though the service is not found    
+                self.info_connection_characteristic = await self.badge_connection_service.characteristic(_INFO_CHAR_UUID)
+                print("Characteristic found successfully")
+
+            except asyncio.TimeoutError:
+                print("Timeout discovering services/characteristics")
+                return False
+                
+            try:
+                #when connected, read and decode
+                read_info = await self.info_connection_characteristic.read()
+                read_info = decode_info(read_info)
+                print("Information: ", read_info)
+                await asyncio.sleep_ms(1000)
+
+    #---------- this is also new, watch out
+                #"immediatelly after" disconnect
                 await connection.disconnect()
-            except:
-                pass  # Ignore disconnection errors
+                print("Disconnected from device")
+
+                if self.check_match(read_info) == 1:
+                    #this writing is never used
+                    led.on()
+                    sleep(1) # sleep 1sec
+                    led.off()
+                    print("Finished evaluating connection.")
+                    return True
+                else:
+                    print("Finished evaluating connection.")
+                    return False
+
+            except Exception as e:
+                print(f"Unknown exception: {e}")
+                try:
+                    await connection.disconnect()
+                except:
+                    pass  # Ignore disconnection errors
+                return False
+        else:
             return False
 
     def check_match(self, read_info):
@@ -319,9 +321,10 @@ class Badge:
                 except Exception as e:
                     print(f"Error during proximity scanning: {e}")
                     await asyncio.sleep_ms(2000)
+                    return False
 
-                print("Proxiscanning timeout :(")
-                return False         
+        print("Proxiscanning timeout :(")
+        return False         
 
     async def run_task(self):
         await self.setup_task()
@@ -354,7 +357,7 @@ class Badge:
             await asyncio.sleep_ms(500)
             print(str(addr))
             if addr:
-                await self.search_with_scan(addr, 20)
+                await self.search_with_scan(addr, 40)
             #this is the end of the loop^ it 
             addr = "" #debugging
 
