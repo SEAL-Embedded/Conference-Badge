@@ -298,9 +298,9 @@ class Badge:
         while (time.time() - start_time) < timeout_s:
             #when the switch is on, find the device and track it, when done the loop is done.
 #---------- this needs to be discussed.
-            if not switch.value():  
+            while not switch.value():  
                 print("Switch off, skipping scan")
-                break
+                await asyncio.sleep(1)
             try:
                 async with aioble.scan(5000, interval_us=30000, window_us=30000, active=True) as scanner:
                     async for result in scanner:
