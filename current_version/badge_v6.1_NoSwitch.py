@@ -100,7 +100,9 @@ class Badge:
 
                     print(f"Found device: {result.name()} RSSI: {result.rssi}")
                     try:
-                        read_info = decode_info(result.manufacturer(0xFFFF))
+                        manufacturer_list = list(result.manufacturer(0xFFFF))
+                        needed_data = manufacturer_list[0][1]
+                        read_info = decode_info(needed_data)
                     except Exception as e:
                         print(f"Exception by not finding the manufacturer info: {e}")
                         continue
@@ -277,7 +279,7 @@ class Badge:
 
                             #this is to exit the scanning loop and start scannign again
                             break
-                        
+
                 await asyncio.sleep_ms(1000)  # Wait between scan cycles
                 
             except Exception as e:
@@ -327,7 +329,7 @@ class Badge:
         await advertise
 
 async def main():
-    badge = Badge([1, 2, 0], "BBBBB")
+    badge = Badge([1, 2, 0], "AAAAA")
     await badge.run_task()
 
 asyncio.run(main())
