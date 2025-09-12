@@ -123,8 +123,11 @@ class Badge:
 
                         try:
                             print("Connecting to let them know!")
+                            print()
                             connection = await result.device.connect()
-                            return connection                      
+                            await asyncio.sleep_ms(500)
+                            await connection.disconnect()
+                            #think of ending this connection right there maybe?                   
                             
                         except asyncio.TimeoutError:
                             print("Timeout during connection")
@@ -151,6 +154,7 @@ class Badge:
                 #so no worries for now about the name in the advertising
 
                 print("Advertising found connection!, from:", connection.device)
+                print()
                 #this flags the good match, should already be a good match if connected!
                 self.good_match.set()
 
@@ -249,6 +253,7 @@ class Badge:
         start_time = time.time()
         target_rssi = -50
         print(f"Scanning for device proximity (target RSSI: {target_rssi})")
+        print()
     
         while (time.time() - start_time) < timeout_s:
             #when the switch is on, find the device and track it, when done the loop is done.
@@ -295,7 +300,6 @@ class Badge:
         advertise = asyncio.create_task(self.advertise())
 
         while True:
-
             try:
                 await self.find_other()
             except Exception as e:
@@ -306,7 +310,7 @@ class Badge:
             else:
                 #now the good_match is set, do the tracking - get the address, start tracking
                 addr = self.get_address()
-                print(addr)
+                #print(addr)
                 if addr is None:
                     print("You're stupid, it doesn't work like that ~>.<~")
                     continue
@@ -316,7 +320,9 @@ class Badge:
                 #there should be a condition checking if the address is None, but I removed it 
                 result = await self.search_with_scan(addr, 40)
                 if result:
+                    print("************||************")
                     print("Another connection made!!!")
+                    print("************||************")
                     await asyncio.sleep(2)
 
 #---------- maybe add the "try again" loop?
@@ -329,7 +335,7 @@ class Badge:
         await advertise
 
 async def main():
-    badge = Badge([1, 2, 0], "AAAAA")
+    badge = Badge([1, 2, 0], "BBBB")
     await badge.run_task()
 
 asyncio.run(main())
