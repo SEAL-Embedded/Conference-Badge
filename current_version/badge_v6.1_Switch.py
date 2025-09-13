@@ -37,7 +37,8 @@ def led_color(r, g, b):
 #-- Claude says it should not be 3
     turnOn.value(3)
 
-switch = Pin(11, Pin.IN, Pin.PULL_DOWN)  # GP11 connected to switch
+switchScan = Pin(11, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
+switchAdvertise = Pin(10, Pin.IN, Pin.PULL_DOWN) # GP10 for advertising
 
 ''' legend for the "roles" (?):
 degree = o if hs
@@ -138,6 +139,10 @@ class Badge:
     async def advertise(self):
         while True:
             #this block starts advertising and continues ONLY WHEN the connection is established
+            while not switchAdvertise.value():
+                print("Switch off: skipping advertising")
+                await asyncio.sleep_ms(1000)
+
             async with await aioble.advertise(
                 _ADV_INTERVAL_MS,
                 name=self.set_badgename,
@@ -256,7 +261,7 @@ class Badge:
         while (time.time() - start_time) < timeout_s:
             #when the switch is on, find the device and track it, when done the loop is done.
 #---------- this still needs to be discussed.
-            if not switch.value():  
+            if not switchScan.value():  
                 print("Switch off, wait till the end of the tracking loop")
                 await asyncio.sleep(1)
                 continue
@@ -311,7 +316,8 @@ class Badge:
 
             #only if the second (?) switch is on, continue with the main loop
 #---------- add the switch
-            while not switch.value():
+            while not switchScan.value():
+                print("Switch off: skipping scanning")
                 await asyncio.sleep_ms(1000)
 
             try:
@@ -337,7 +343,7 @@ class Badge:
                 result = await self.search_with_scan(addr, 20)
                 while not result:
                     #check if the switch is still on
-                    if switch.value():
+                    if switchScan.value():
                         print("Try again")
                         result = await self.search_with_scan(addr, 20)
                     else:
