@@ -65,6 +65,8 @@ class Badge:
         self.set_info = info_array
         self.adv_packet = encode_info(info_array)
         self.set_badgename = name
+        self.tracking = False
+        self.current_rssi = None
 
         #set and registed service and characteristics
         self.badge_service = aioble.Service(_BADGE_SERVICE_UUID)
@@ -214,30 +216,45 @@ class Badge:
     def rssi_meters(self, rssi):
         return f"{10**((-50-rssi)/(10*3.5))}"
     
-    #based on the rssi, lights up different colors
-    #references humanize_rssi
-    async def get_distance_feedback(self, rssi):
+    async def distance_feedback_loop(self):
+        last_rssi = None
+        while True:
+            if self.tracking and self.current_rssi is not None:
+                rssi = self.current_rssi
+                if rssi != last_rssi:
+                    print(f"[LED Loop] RSSI: {rssi}")
+                    last_rssi = rssi
 
-        if rssi > -50:
-            led_color(1, 0, 0)  # Green
-            await asyncio.sleep_ms(1000)
-            led_color(0, 0, 0)
-        elif rssi > -60:
-            led_color(1, 0, 1)  # Yellow
-            await asyncio.sleep_ms(1000)
-            led_color(0, 0, 0)
-        elif rssi > -70:
-            led_color(1, 1, 0)  # Cyan
-            await asyncio.sleep_ms(1000)
-            led_color(0, 0, 0)
-        elif rssi > -80:
-            led_color(0, 1, 0)  # Blue
-            await asyncio.sleep_ms(1000)
-            led_color(0, 0, 0)
-        else:
-            led_color(0, 0, 1)  # Red
-            await asyncio.sleep_ms(1000)
-            led_color(0, 0, 0)
+                led_color(1, 0, 0)  # Red (or adjust as needed)
+
+                # Adjust blink rate based on signal strength
+                if rssi > -50:
+                    await asyncio.sleep_ms(200)
+                elif rssi > -60:
+                    await asyncio.sleep_ms(400)
+                elif rssi > -70:
+                    await asyncio.sleep_ms(600)
+                elif rssi > -80:
+                    await asyncio.sleep_ms(800)
+                else:
+                    await asyncio.sleep_ms(1000)
+
+                led_off()
+
+                if rssi > -50:
+                    await asyncio.sleep_ms(200)
+                elif rssi > -60:
+                    await asyncio.sleep_ms(400)
+                elif rssi > -70:
+                    await asyncio.sleep_ms(600)
+                elif rssi > -80:
+                    await asyncio.sleep_ms(800)
+                else:
+                    await asyncio.sleep_ms(1000)
+            else:
+                # Ensure LED is OFF when not tracking
+                led_off()
+                await asyncio.sleep_ms(100)
        
     #tracks the previously found match given its address, exits when reaches timeout
     #references rssi_meters, humanize_rssi, and get_distance_feedback
@@ -266,6 +283,8 @@ class Badge:
                         if str(result.device) == str(addr):
                             current_rssi = result.rssi
                             print(f"Found targeted device! RSSI: {result.rssi}")
+                            self.tracking = True  # Start LED loop
+                            self.current_rssi = result.rssi
                             
                             if current_rssi > target_rssi:
                                 print("Target reached!")
@@ -277,6 +296,22 @@ class Badge:
                                     print("Another connection made!!!")
                                     print("************||************")
                                     print()
+                                    self.tracking = False
+                                    self.current_rssi = None
+                                    led_color(1, 0, 0) 
+                                    await asyncio.sleep_ms(500)
+                                    led_color(0, 1, 0) 
+                                    await asyncio.sleep_ms(500)
+                                    led_color(0, 0, 1) 
+                                    await asyncio.sleep_ms(500)
+                                    led_color(1, 1, 0) 
+                                    await asyncio.sleep_ms(500)
+                                    led_color(1, 0, 1) 
+                                    await asyncio.sleep_ms(500)
+                                    led_color(0, 1, 1) 
+                                    await asyncio.sleep_ms(500)
+                                    led_color(1, 1, 1) 
+                                    await asyncio.sleep_ms(500)
                                     return True
                                 else:
                                     await asyncio.sleep_ms(1000)
@@ -306,6 +341,8 @@ class Badge:
                 return False
 
         print("Proximity scanning time is over :(")
+        self.tracking = False
+        self.current_rssi = None
         return False         
 
     async def run_task(self):
@@ -313,6 +350,7 @@ class Badge:
         #only if the first switch is on, be discoverable
 #------ need to find a way to stop advertising without a big harm to everything else
         advertise = asyncio.create_task(self.advertise())
+        asyncio.create_task(self.distance_feedback_loop())
 
         while True:
 
