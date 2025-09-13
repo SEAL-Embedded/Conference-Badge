@@ -80,6 +80,7 @@ class Badge:
 
         #event setup
         self.good_match = asyncio.Event()
+        self.connection_made = asyncio.Event()
         
         #this should be looked over, but debugging 
         self.addr = None
@@ -250,6 +251,8 @@ class Badge:
                 # Ensure LED is OFF when not tracking
                 led_off()
                 await asyncio.sleep_ms(100)
+            if self.connection_made.is_set():
+                break
 
 
     #tracks the previously found match given its address, exits when reaches timeout
@@ -266,6 +269,7 @@ class Badge:
         while (time.time() - start_time) < timeout_s:
             #when the switch is on, find the device and track it, when done the loop is done.
 #---------- this still needs to be discussed.
+            self.connection_made.clear()
             if not switchScan.value():  
                 print("Switch off, wait till the end of the tracking loop")
                 await asyncio.sleep(1)
@@ -290,6 +294,7 @@ class Badge:
                                 print("Another connection made!!!")
                                 print("************||************")
                                 print()
+                                self.connection_made.set()
                                 #but maybe not here, in run_task?
                                 self.tracking = False
                                 self.current_rssi = None
