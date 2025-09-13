@@ -210,7 +210,7 @@ class Badge:
 
     #formula. good, but the constants can be different
     def rssi_meters(self, rssi):
-        return f"{10**((-50-rssi)/(10*3.5))}"
+        return f"{10**((-45-rssi)/(10*10))}"
 
     async def distance_feedback_loop(self):
         last_rssi = None
@@ -263,7 +263,7 @@ class Badge:
         task = asyncio.create_task(self.distance_feedback_loop())
         print("Starting to track")
         start_time = time.time()
-        target_rssi = -50
+        target_rssi = -45
         print(f"Scanning for device proximity (target RSSI: {target_rssi})")
         print()
     
@@ -400,4 +400,8 @@ async def main():
     badge = Badge([1, 2, 0], "BBBB")
     await badge.run_task()
 
-asyncio.run(main())
+try: 
+    asyncio.run(main())
+except KeyboardInterrupt:
+    led_off()
+    print("Program interrupted. LED turned off.")
