@@ -1,4 +1,5 @@
 
+
 #switch version!
 
 from machine import Pin
@@ -294,7 +295,7 @@ class Badge:
                             if current_rssi > target_rssi:
                                 print("Target reached!")
                                 target_count += 1
-                                if target_count > 2:
+                                if target_count > 1:
                                     await asyncio.sleep_ms(500)
                                     print()
                                     print("************||************")
@@ -345,7 +346,10 @@ class Badge:
                 return False
 
         print("Proximity scanning time is over :(")
-        return False         
+        await task
+        self.tracking = False
+        self.current_rssi = None
+        return False           
 
     async def run_task(self):
         await self.setup_task()
