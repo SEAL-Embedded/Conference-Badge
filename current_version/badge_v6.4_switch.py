@@ -291,8 +291,8 @@ class Badge:
                         if str(result.device) == str(addr):
                             current_rssi = result.rssi
                             print(f"Found targeted device! RSSI: {result.rssi}")
-                            self.tracking = False
-                            self.current_rssi = None
+                            self.tracking = True
+                            self.current_rssi = result.rssi
                             
                             if current_rssi > target_rssi:
                                 print("Target reached!")
