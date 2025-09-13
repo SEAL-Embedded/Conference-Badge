@@ -251,6 +251,7 @@ class Badge:
                 # Ensure LED is OFF when not tracking
                 led_off()
                 await asyncio.sleep_ms(100)
+                
             if self.connection_made.is_set():
                 break
 
@@ -259,7 +260,7 @@ class Badge:
     #references rssi_meters, humanize_rssi, and get_distance_feedback
     #target_rssi can be different and should be looked over
     async def search_with_scan(self, addr, timeout_s):
-        
+        task = asyncio.create_task(self.distance_feedback_loop())
         print("Starting to track")
         start_time = time.time()
         target_rssi = -50
@@ -333,6 +334,7 @@ class Badge:
                 return False
 
         print("Proximity scanning time is over :(")
+        await task
         self.tracking = False
         self.current_rssi = None
         return False         
@@ -342,7 +344,6 @@ class Badge:
         #only if the first switch is on, be discoverable
 #------ need to find a way to stop advertising without a big harm to everything else
         advertise = asyncio.create_task(self.advertise())
-        asyncio.create_task(self.distance_feedback_loop())
 
         while True:
 
