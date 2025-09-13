@@ -408,4 +408,8 @@ async def main():
     badge = Badge([1, 2, 0], "BBBB")
     await badge.run_task()
 
-asyncio.run(main())
+try: 
+    asyncio.run(main())
+except KeyboardInterrupt:
+    led_off()
+    print("Program interrupted. LED turned off.")
