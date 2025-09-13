@@ -312,6 +312,7 @@ class Badge:
                                 await asyncio.sleep_ms(500)
                                 led_color(1, 1, 1) 
                                 await asyncio.sleep_ms(500)
+                                led_off()
                                 return True
                                 
                             #links to the function that gives a distance from the rssi
