@@ -1,5 +1,8 @@
 
+
 #check if the is_tracking is consistent in the code
+
+#need to check the already connected, the types written in there aren't same from two: advertising and scanning 
 
 #switch version!
 
@@ -71,7 +74,6 @@ class Badge:
         self.set_badgename = name
 
         #for the lights loop
-        self.tracking = False
         self.current_rssi = None
 
         #set and registed service and characteristics
@@ -105,21 +107,41 @@ class Badge:
         async with aioble.scan(5000, interval_us=30000, window_us=20000, active=True) as scanner:
             async for result in scanner:
                 if _BADGE_SERVICE_UUID in result.services():
+                    #print(f"result.device type: {type(result.device)}")     # (debugging) or just remove those completelly
                     if not (result.device in self.already_connected):
 
                         print(f"Found device: {result.name()} RSSI: {result.rssi}")
+                        print()
                         try:
-                            manufacturer_list = list(result.manufacturer(0xFFFF))
-                            is_tracking = manufacturer_list[0][1]
+                            # Get the generator + convert it to list
+                            manufacturer_gen = result.manufacturer(0xFFFF)
+                            manufacturer_list = list(manufacturer_gen)
+                            
+                            # Check if list is empty
+                            if not manufacturer_list:
+                                print("Empty manufacturer list - no data for company ID 0xFFFF")
+                                continue
+
+                            # The manufacturer data is likely the first (and probably only) item
+                            manufacturer_data = bytes(manufacturer_list[0][1])
+                            is_tracking = bool(manufacturer_data[0])
+                            print(f"is_tracking: {is_tracking}")
+                            print()
 
                             #if already tracks other device, don't distract it, try other device
                             if is_tracking:
+                                print("Device is in tracking mode, don't connect")
                                 continue
-                            else:
-                                info_data = manufacturer_list[0][2]
-                                read_info = decode_array(info_data)         #their name
-                                target_data = manufacturer_list[0][3]
-                                read_target = decode_array(target_data)     #their target
+                            
+                            info_byte_len = len(self.set_info) * 2
+                            target_byte_len = len(self.set_target) * 2
+                            
+                            info_bytes = manufacturer_data[1:1 + info_byte_len]
+                            target_bytes = manufacturer_data[1 + info_byte_len:1 + info_byte_len + target_byte_len]
+                            
+                            read_info = decode_array(info_bytes)
+                            read_target = decode_array(target_bytes)
+                            print(f"their tags: {read_info}, they are looking for: {read_target}")
 
                         except Exception as e:
                             print(f"Exception with the manufacturer info: {e}")
@@ -162,7 +184,7 @@ class Badge:
 #---------------------- do something with it
                         continue
         
-        print("No good devices nearby")
+        print("No good devices nearby *or exited the scanning loop")
         return None
 
     #advertises all the time excluding the connection, this function shouldn't do anything besides advertising.
@@ -172,26 +194,30 @@ class Badge:
             while not switchAdvertise.value():
                 print("Switch off: skipping advertising")
                 await asyncio.sleep_ms(1000)
+            
+            tracking_byte = struct.pack('B', int(self.is_tracking))
+            manufacturer_data = tracking_byte + self.adv_name + self.adv_target
+
+            #print(f"Sending manufacturer data: {manufacturer_data}")       #debugging
+            #print(f"Length: {len(manufacturer_data)}")                     #debugging
 
             async with await aioble.advertise(
                 _ADV_INTERVAL_MS,
                 name=self.set_badgename,
                 services=[_BADGE_SERVICE_UUID],
-                manufacturer=(0xFFFF, self.is_tracking, self.adv_name, self.adv_target),
+                manufacturer=(0xFFFF, manufacturer_data),
                 appearance=0,
             ) as connection:
 
-                #so ig with the new functionality the connection should only be requested when the match is good...
-                #yeah, and this doesn't need to know the name of the badge since if the 
 #-------------- this is a bad assumption. but if the match is good from one side it should be good on the other side too
-                #so no worries for now about the name in the advertising
-
-#-------------- should flash something to indicate
+        
+#-------------- should flash something to indicate? (for trials without switch)
                 print("Advertising found connection!, from:", connection.device)
                 print()
                 #this flags the good match, should already be a good match if connected
                 self.good_match.set()
-                self.already_connected.add(connection.device) #work with set
+                add = connection.device
+                self.already_connected.add(add) #work with set
 
                 #this is weird, pulls up an address of the conected device
                 self.device_addr_adv = str(connection.device)
@@ -319,6 +345,7 @@ class Badge:
         self.connection_made.clear()    #OK to start the LED loop
         lights_loop = asyncio.create_task(self.distance_feedback_loop())
         
+        print()
         print("Starting to track")
         start_time = time.time()
         target_rssi = -48
@@ -407,6 +434,7 @@ class Badge:
             try:
                 await self.find_other()
                 await asyncio.sleep_ms(500)
+
             except Exception as e:
                 print(f"Error from calling find_other(): {e}")
 
@@ -449,11 +477,12 @@ class Badge:
         await advertise
 
 async def main():
-    badge = Badge([1, 2, 0], [1, 2, 0], "CCCC")
+    badge = Badge([1, 2, 0], [1, 2, 0], "BBBB")
     await badge.run_task()
 
 try: 
     asyncio.run(main())
+
 except KeyboardInterrupt:
     led_off()
     print("Program interrupted. LED turned off.")
