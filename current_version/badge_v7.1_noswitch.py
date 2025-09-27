@@ -77,7 +77,6 @@ class Badge:
         self.set_badgename = name
 
         #for the lights loop
-        self.tracking = False
         self.current_rssi = None
 
         #set and registed service and characteristics
@@ -111,23 +110,30 @@ class Badge:
         async with aioble.scan(5000, interval_us=30000, window_us=20000, active=True) as scanner:
             async for result in scanner:
                 if _BADGE_SERVICE_UUID in result.services():
-                    if not (result.device in self.already_connected):
+                    if not (str(result.device.hex(':')) in self.already_connected):
 
                         print(f"Found device: {result.name()} RSSI: {result.rssi}")
                         try:
-                            manufacturer_list = list(result.manufacturer(0xFFFF))
-                            is_tracking = bool(manufacturer_list[0][1])
+                            manufacturer_data = result.manufacturer(0xFFFF)
+                            is_tracking = bool(manufacturer_data[0])
                             print(is_tracking)
+
 
                             #if already tracks other device, don't distract it, try other device
                             if is_tracking:
                                 print("Device is in tracking mode, don't connect")
                                 continue
                             else:
-                                info_data = manufacturer_list[0][2]
-                                read_info = decode_array(info_data)         #their name
-                                target_data = manufacturer_list[0][3]
-                                read_target = decode_array(target_data)     #their target
+                                info_byte_len = len(self.set_info) * 2
+                                target_byte_len = len(self.set_target) * 2
+                                
+                                info_bytes = manufacturer_data[1:1 + info_byte_len]
+                                target_bytes = manufacturer_data[1 + info_byte_len:1 + info_byte_len + target_byte_len]
+                                
+                                read_info = decode_array(info_bytes)
+                                read_target = decode_array(target_bytes)
+
+                                print(read_target, read_info)
 
                         except Exception as e:
                             print(f"Exception with the manufacturer info: {e}")
@@ -136,12 +142,12 @@ class Badge:
 
                         #if the match is bad, don't do anything
                         if not self.check_match(read_info):
-                            print("Not a good match1")
+                            print("Not a good match 1")
                             continue
                         
                         else:
                             if not self.check_IAM_match(read_target):
-                                print("Not a good match2")
+                                print("Not a good match 2")
                                 continue
 #-------------------------- should flash something to indicate 
                             print("Found a good match on both sides! ")
@@ -185,12 +191,13 @@ class Badge:
             
             tracking_byte = struct.pack('B', int(self.is_tracking))
             print(tracking_byte)
+            manufacturer_data = tracking_byte + self.adv_name + self.adv_target
 
             async with await aioble.advertise(
                 _ADV_INTERVAL_MS,
                 name=self.set_badgename,
                 services=[_BADGE_SERVICE_UUID],
-                manufacturer=(0xFFFF, tracking_byte, self.adv_name, self.adv_target),
+                manufacturer=(0xFFFF, manufacturer_data),
                 appearance=0,
             ) as connection:
 
@@ -204,7 +211,7 @@ class Badge:
                 print()
                 #this flags the good match, should already be a good match if connected
                 self.good_match.set()
-                self.already_connected.add(connection.device) #work with set
+                self.already_connected.add(str(connection.device.hex(':'))) #work with set
 
                 #this is weird, pulls up an address of the conected device
                 self.device_addr_adv = str(connection.device)
@@ -462,7 +469,7 @@ class Badge:
         await advertise
 
 async def main():
-    badge = Badge([1, 2, 0], [1, 2, 0], "CCCC")
+    badge = Badge([1, 2, 0], [1, 2, 0], "BBBB")
     await badge.run_task()
 
 try: 
