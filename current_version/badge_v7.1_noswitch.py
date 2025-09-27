@@ -117,9 +117,11 @@ class Badge:
                         try:
                             manufacturer_list = list(result.manufacturer(0xFFFF))
                             is_tracking = bool(manufacturer_list[0][1])
+                            print(is_tracking)
 
                             #if already tracks other device, don't distract it, try other device
                             if is_tracking:
+                                print("Device is in tracking mode, don't connect")
                                 continue
                             else:
                                 info_data = manufacturer_list[0][2]
@@ -134,10 +136,12 @@ class Badge:
 
                         #if the match is bad, don't do anything
                         if not self.check_match(read_info):
+                            print("Not a good match1")
                             continue
                         
                         else:
                             if not self.check_IAM_match(read_target):
+                                print("Not a good match2")
                                 continue
 #-------------------------- should flash something to indicate 
                             print("Found a good match on both sides! ")
@@ -180,6 +184,7 @@ class Badge:
             #    await asyncio.sleep_ms(1000)
             
             tracking_byte = struct.pack('B', int(self.is_tracking))
+            print(tracking_byte)
 
             async with await aioble.advertise(
                 _ADV_INTERVAL_MS,
