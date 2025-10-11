@@ -90,6 +90,7 @@ class Badge:
         self.good_match = asyncio.Event()
         self.connection_made = asyncio.Event()
         self.connection_made_for_1 = asyncio.Event()
+        #self.connection_found = asyncio.Event()
         
         #this should be looked over, but debugging 
         self.addr = None
@@ -164,7 +165,6 @@ class Badge:
 
                             #pulls up an address of the found device
                             self.device_addr_scan = str(result.device)
-                            print(self.device_addr_scan)
 
                             try:
                                 print("Connecting to let them know!")
@@ -184,7 +184,7 @@ class Badge:
                             
                     elif (self.connection_made_for_1.is_set()):
                         await asyncio.sleep_ms(500)
-                        print("There is something very weird going on")
+                        print("Device is found from advertising")
                         return True
                     
                     else:
@@ -296,43 +296,51 @@ class Badge:
             return False
 
     #formula. good, but the constants can be different
+#--------------------------------------------- work on the equation 
     def rssi_meters(self, rssi):
         return f"{10**((-50-rssi)/(10*3.5))}"
     
     #based on the rssi, lights up different colors
     #references humanize_rssi
+#--------------------------------------------- RSSI values also here
     async def distance_feedback_loop(self):
         while True:
             if self.connection_made.is_set():
                 break
 #---------- lets look at the "tracking"
-            if self.is_tracking and self.current_rssi is not None:
+            if self.is_tracking and self.current_rssi is not None: #and not (self.connection_found.is_set()):
                 rssi = self.current_rssi
 
                 #turn on
-                led_color(1, 0, 0)  # Red (or adjust as needed)
+                led_color(1, 0, 0)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
 
-                # Adjust blink rate based on signal strength
+                #Adjust blink rate based on signal strength
+#-------------- These values are not right
                 if rssi > -60:
                     await asyncio.sleep_ms(200)
-                elif rssi > -70:
-                    await asyncio.sleep_ms(400)
-                elif rssi > -80:
-                    await asyncio.sleep_ms(600)
-                else:
-                    await asyncio.sleep_ms(800)
-
-                #turn off
-                led_off()
-
-                if rssi > -60:
+                    led_off()
                     await asyncio.sleep_ms(200)
+
                 elif rssi > -70:
                     await asyncio.sleep_ms(400)
+                    led_off()
+                    await asyncio.sleep_ms(400)
+
                 elif rssi > -80:
                     await asyncio.sleep_ms(600)
+                    led_off()
+                    await asyncio.sleep_ms(600)
+
                 else:
                     await asyncio.sleep_ms(800)
+                    led_off()
+                    await asyncio.sleep_ms(800)
+
+            #elif self.connection_found.is_set():
+                #led_color(0, 0, 1) #we need an actual red
+                #await asyncio.sleep_ms(400)
+                #led_off()
+                #await asyncio.sleep_ms(400)
 
             else:
                 # Ensure LED is OFF when not tracking
@@ -340,19 +348,23 @@ class Badge:
                 await asyncio.sleep_ms(100)
 
     async def celebration_lights(self):
-        led_color(1, 0, 0) 
+        #led_color(1, 0, 0)             #green
+        #await asyncio.sleep_ms(1000)
+        led_color(0, 1, 0)              #blue
+        await asyncio.sleep_ms(1000)
+        #led_color(0, 0, 1)             #red
+        #await asyncio.sleep_ms(500)
+        #led_color(1, 1, 0)             #cyan
+        #await asyncio.sleep_ms(500)
+        led_color(1, 0, 1)              #yellow
+        await asyncio.sleep_ms(500) 
+        led_color(0, 1, 0)              #blue
+        await asyncio.sleep_ms(1000)
+        led_color(0, 1, 1)              #magenta
         await asyncio.sleep_ms(500)
-        led_color(0, 1, 0) 
-        await asyncio.sleep_ms(500)
-        led_color(0, 0, 1) 
-        await asyncio.sleep_ms(500)
-        led_color(1, 1, 0) 
-        await asyncio.sleep_ms(500)
-        led_color(1, 0, 1) 
-        await asyncio.sleep_ms(500)
-        led_color(0, 1, 1) 
-        await asyncio.sleep_ms(500)
-        led_color(1, 1, 1) 
+        led_color(0, 1, 0)              #blue
+        await asyncio.sleep_ms(1000)
+        led_color(1, 1, 1)              #white
         await asyncio.sleep_ms(500)
         led_off()
 
@@ -362,6 +374,7 @@ class Badge:
     async def search_with_scan(self, addr, timeout_s):
 
         self.connection_made_for_1.clear()      #clear the event for searching
+        #self.connection_found.clear()           #clear the event for debugging
 
         self.connection_made.clear()    #OK to start the LED loop
         lights_loop = asyncio.create_task(self.distance_feedback_loop())
@@ -398,11 +411,18 @@ class Badge:
                             print(f"Found targeted device! RSSI: {self.current_rssi}")                            
                             
                             #if reached target
+#-------------------------- idk if we need this protection -------------------------------
                             if self.current_rssi > target_rssi:
-                                print("Target reached!")
-                                target_count += 1
-                                if target_count >= 2:   #just to make sure they met
+                                    print("Target reached!")
+                                #target_count += 1
 
+                                #see what this does
+                                #await asyncio.sleep_ms(500)
+
+                                #self.connection_found.set()
+                                #if target_count >= 2:   #just to make sure they met
+
+                                    #self.connection_found.clear()
                                     self.connection_made.set()      #stop this LED loop immediatelly 
                                     self.is_tracking = False          #also clear these fields
                                     self.current_rssi = None 
@@ -416,16 +436,21 @@ class Badge:
                                     await self.celebration_lights()
                                     return True
                                 
-                                else:
+                                #else:
                                     #if this is the first encounter
                                     #actually I don't know if this is needed, we could just make the lights go longer
-                                    print()
-                                    continue
+                                    #print()
+                                    #continue
+                            #else:
+                                #self.connection_found.clear()
 
                                                                 
                             #links to the function that gives a distance from the rssi
                             distance = self.rssi_meters(self.current_rssi)
-                            print(f"Distance value: {distance}m")
+                            print(f"Approximated distance: {distance}m")
+
+#-------------------------- lets see if this does anything
+                            await asyncio.sleep_ms(500) 
                             
                             print()
 
