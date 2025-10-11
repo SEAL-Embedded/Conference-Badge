@@ -1,8 +1,5 @@
 
-
 #check if the is_tracking is consistent in the code
-
-#need to check the already connected, the types written in there aren't same from two: advertising and scanning 
 
 #switch version!
 
