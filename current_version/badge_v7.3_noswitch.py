@@ -94,6 +94,8 @@ class Badge:
         self.device_addr_adv = None
         self.device_addr_scan = None
 
+        self.smoothed_rssi = None
+
     #not sure if we need this fuciton now that I changed everything 
     async def setup_task(self):
         await asyncio.sleep_ms(500)
@@ -294,8 +296,20 @@ class Badge:
 
     #formula. good, but the constants can be different
 #--------------------------------------------- work on the equation 
+#rssi at one meter: 60
     def rssi_meters(self, rssi):
-        return f"{10**((-50-rssi)/(10*3.5))}"
+        return f"{10**((-60-rssi)/(10*2.5))}"
+
+    def smooth_rssi(self, rssi, alpha=0.2):
+        smoothed_rssi = self.smoothed_rssi
+        if self.smoothed_rssi is None:
+            self.smoothed_rssi = rssi  # initialize first value
+        else:
+            self.smoothed_rssi = alpha * rssi + (1 - alpha) * self.smoothed_rssi
+        return smoothed_rssi
+
+
+
     
     #based on the rssi, lights up different colors
     #references humanize_rssi
@@ -315,6 +329,7 @@ class Badge:
 #-------------- These values are not right
                 if rssi > -60:
                     await asyncio.sleep_ms(200)
+
                     led_off()
                     await asyncio.sleep_ms(200)
 
@@ -402,6 +417,7 @@ class Badge:
                     
                         if str(result.device) == str(addr):
 
+                            
                             self.current_rssi = result.rssi     #both start
                             self.is_tracking = True               #the LED loop
 
@@ -443,7 +459,9 @@ class Badge:
 
                                                                 
                             #links to the function that gives a distance from the rssi
-                            distance = self.rssi_meters(self.current_rssi)
+                            
+                            value_rssi = self.smooth_rssi(self.current_rssi)
+                            distance = self.rssi_meters(value_rssi)
                             print(f"Approximated distance: {distance}m")
 
 #-------------------------- lets see if this does anything
