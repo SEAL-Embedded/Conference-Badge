@@ -1,4 +1,6 @@
 
+#check if the is_tracking is consistent in the code
+
 #no switch version!
 
 from machine import Pin
@@ -16,21 +18,26 @@ _MATCH_CHAR_UUID = bluetooth.UUID("2aca7f5b-02b7-4232-a5f0-56cb9155be7a")
 # How frequently to send advertising beacons.
 _ADV_INTERVAL_MS = 250_000
 
-'''
+
 #get the LED
-red = Pin(15, Pin.OUT)
-green = Pin(14, Pin.OUT)
-blue = Pin(13, Pin.OUT)
-turnOn = Pin(12, Pin.OUT)
-'''
+red = Pin(25, Pin.OUT)
+green = Pin(26, Pin.OUT)
+blue = Pin(14, Pin.OUT)
+turnOn = Pin(27, Pin.OUT)
+
 led = Pin(2, Pin.OUT)
 
 def led_off():
-    led.value(0)
+    red.value(1)
+    green.value(1)
+    blue.value(1)
 
 def led_color(r, g, b):
     # Inverted logic for common anode
-    led.value(1)
+    red.value(0 if r else 1)
+    green.value(0 if g else 1)
+    blue.value(0 if b else 1)
+    turnOn.value(1)
 
 #switchScan = Pin(11, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
 #switchAdvertise = Pin(10, Pin.IN, Pin.PULL_DOWN) # GP10 for advertising
