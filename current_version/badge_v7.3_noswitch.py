@@ -18,29 +18,9 @@ _MATCH_CHAR_UUID = bluetooth.UUID("2aca7f5b-02b7-4232-a5f0-56cb9155be7a")
 # How frequently to send advertising beacons.
 _ADV_INTERVAL_MS = 250_000
 
-#get the LED
-red = Pin(15, Pin.OUT)
-green = Pin(14, Pin.OUT)
-blue = Pin(13, Pin.OUT)
-turnOn = Pin(12, Pin.OUT)
-
 led = Pin("LED", Pin.OUT)
 
-def led_off():
-    #red.value(1)
-    #green.value(1)
-    #blue.value(1)
-    led.value(0)
-
-def led_color(r, g, b):
-    # Inverted logic for common anode
-    #red.value(0 if r else 1)
-    #green.value(0 if g else 1)
-    #blue.value(0 if b else 1)
-    #turnOn.value(1)
-    led.value(1)
-
-#switchScan = Pin(2, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
+#switchScan = Pin(11, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
 #switchAdvertise = Pin(10, Pin.IN, Pin.PULL_DOWN) # GP10 for advertising
 
 ''' legend for the "roles" (?):
@@ -88,7 +68,7 @@ class Badge:
         #event setup
         self.good_match = asyncio.Event()
         self.connection_made = asyncio.Event()
-        self.connection_made_from_adv = asyncio.Event()
+        self.connection_made_for_1 = asyncio.Event()
         #self.connection_found = asyncio.Event()
         
         #this should be looked over, but debugging 
@@ -110,7 +90,7 @@ class Badge:
                 if _BADGE_SERVICE_UUID in result.services():
                     #print(f"result.device type: {type(result.device)}")     # (debugging) or just remove those completelly
 #------------------ remove and if anything
-                    if not (result.device in self.already_connected) and not (self.connection_made_from_adv.is_set()):
+                    if not (result.device in self.already_connected) and not (self.connection_made_for_1.is_set()):
 
                         print(f"Found device: {result.name()} RSSI: {result.rssi} Address: {result.device}")
                         print()
@@ -170,9 +150,8 @@ class Badge:
                                 print()
                                 connection = await result.device.connect()
 
-#----------------This right here
                                 #print("Added to the set of already connected")
-                                #self.already_connected.add(result.device) #work with set
+                                #elf.already_connected.add(result.device) #work with set
 
                                 await asyncio.sleep_ms(500)
                                 await connection.disconnect()
@@ -182,7 +161,7 @@ class Badge:
                                 print("Timeout during connection")
                                 return None
                             
-                    elif (self.connection_made_from_adv.is_set()):
+                    elif (self.connection_made_for_1.is_set()):
                         await asyncio.sleep_ms(500)
                         print("Device is found from advertising")
                         return True
@@ -227,9 +206,8 @@ class Badge:
                 #this flags the good match, should already be a good match if connected
                 self.good_match.set()
                 add = connection.device
-#----------and this here
                 #self.already_connected.add(add) #work with set
-                self.connection_made_from_adv.set()
+                self.connection_made_for_1.set()
 
                 #this is weird, pulls up an address of the conected device
                 #looks like this just got addressed
@@ -313,29 +291,14 @@ class Badge:
                 rssi = self.current_rssi
 
                 #turn on
-                led_color(1, 0, 0)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
-
+                led.value(1)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
+                a = 100
                 #Adjust blink rate based on signal strength
 #-------------- These values are not right
-                if rssi > -60:
-                    await asyncio.sleep_ms(200)
-                    led_off()
-                    await asyncio.sleep_ms(200)
+                await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
+                led.value(0)
+                await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
 
-                elif rssi > -70:
-                    await asyncio.sleep_ms(400)
-                    led_off()
-                    await asyncio.sleep_ms(400)
-
-                elif rssi > -80:
-                    await asyncio.sleep_ms(600)
-                    led_off()
-                    await asyncio.sleep_ms(600)
-
-                else:
-                    await asyncio.sleep_ms(800)
-                    led_off()
-                    await asyncio.sleep_ms(800)
 
             #elif self.connection_found.is_set():
                 #led_color(0, 0, 1) #we need an actual red
@@ -345,36 +308,22 @@ class Badge:
 
             else:
                 # Ensure LED is OFF when not tracking
-                led_off()
+                led.value(0)
                 await asyncio.sleep_ms(100)
 
     async def celebration_lights(self):
         #led_color(1, 0, 0)             #green
         #await asyncio.sleep_ms(1000)
-        led_color(0, 1, 0)              #blue
-        await asyncio.sleep_ms(1000)
-        #led_color(0, 0, 1)             #red
-        #await asyncio.sleep_ms(500)
-        #led_color(1, 1, 0)             #cyan
-        #await asyncio.sleep_ms(500)
-        led_color(1, 0, 1)              #yellow
-        await asyncio.sleep_ms(500) 
-        led_color(0, 1, 0)              #blue
-        await asyncio.sleep_ms(1000)
-        led_color(0, 1, 1)              #magenta
-        await asyncio.sleep_ms(500)
-        led_color(0, 1, 0)              #blue
-        await asyncio.sleep_ms(1000)
-        led_color(1, 1, 1)              #white
-        await asyncio.sleep_ms(500)
-        led_off()
+        led.value(1)
+        await asyncio.sleep_ms(2000)
+        led.value(0)
 
     #tracks the previously found match given its address, exits when reaches timeout
     #references rssi_meters, humanize_rssi, and get_distance_feedback
     #target_rssi can be different and should be looked over
     async def search_with_scan(self, addr, timeout_s):
 
-        self.connection_made_from_adv.clear()      #clear the event for searching
+        self.connection_made_for_1.clear()      #clear the event for searching
         #self.connection_found.clear()           #clear the event for debugging
 
         self.connection_made.clear()    #OK to start the LED loop
@@ -539,5 +488,5 @@ try:
     asyncio.run(main())
 
 except KeyboardInterrupt:
-    led_off()
+    led.value(0)
     print("Program interrupted. LED turned off.")
