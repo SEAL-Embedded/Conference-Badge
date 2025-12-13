@@ -506,11 +506,13 @@ class Badge:
 
                 #20 seconds now!!!
                 result = await self.search_with_scan(addr, 10)
-                while not result:
+                count = 0
+                while not result and count < 5:
                     #check if the switch is still on
                     #if switchScan.value():
                     #    print("Try again")
                         result = await self.search_with_scan(addr, 10)
+                        count += 1
                     #else:
                         #break       #so right here, if the people didn't meet and switch is OFF it exits the loop
 
