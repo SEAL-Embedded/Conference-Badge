@@ -27,18 +27,20 @@ turnOn = Pin(12, Pin.OUT)
 led = Pin("LED", Pin.OUT)
 
 def led_off():
-    red.value(1)
-    green.value(1)
-    blue.value(1)
+    #red.value(1)
+    #green.value(1)
+    #blue.value(1)
+    led.value(0)
 
 def led_color(r, g, b):
     # Inverted logic for common anode
-    red.value(0 if r else 1)
-    green.value(0 if g else 1)
-    blue.value(0 if b else 1)
-    turnOn.value(1)
+    #red.value(0 if r else 1)
+    #green.value(0 if g else 1)
+    #blue.value(0 if b else 1)
+    #turnOn.value(1)
+    led.value(1)
 
-#switchScan = Pin(11, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
+#switchScan = Pin(2, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
 #switchAdvertise = Pin(10, Pin.IN, Pin.PULL_DOWN) # GP10 for advertising
 
 ''' legend for the "roles" (?):
@@ -86,15 +88,13 @@ class Badge:
         #event setup
         self.good_match = asyncio.Event()
         self.connection_made = asyncio.Event()
-        self.connection_made_for_1 = asyncio.Event()
+        self.connection_made_from_adv = asyncio.Event()
         #self.connection_found = asyncio.Event()
         
         #this should be looked over, but debugging 
         self.addr = None
         self.device_addr_adv = None
         self.device_addr_scan = None
-
-        self.smoothed_rssi = None
 
     #not sure if we need this fuciton now that I changed everything 
     async def setup_task(self):
@@ -110,7 +110,7 @@ class Badge:
                 if _BADGE_SERVICE_UUID in result.services():
                     #print(f"result.device type: {type(result.device)}")     # (debugging) or just remove those completelly
 #------------------ remove and if anything
-                    if not (result.device in self.already_connected) and not (self.connection_made_for_1.is_set()):
+                    if not (result.device in self.already_connected) and not (self.connection_made_from_adv.is_set()):
 
                         print(f"Found device: {result.name()} RSSI: {result.rssi} Address: {result.device}")
                         print()
@@ -170,8 +170,9 @@ class Badge:
                                 print()
                                 connection = await result.device.connect()
 
-                                print("Added to the set of already connected")
-                                self.already_connected.add(result.device) #work with set
+#----------------This right here
+                                #print("Added to the set of already connected")
+                                #self.already_connected.add(result.device) #work with set
 
                                 await asyncio.sleep_ms(500)
                                 await connection.disconnect()
@@ -181,7 +182,7 @@ class Badge:
                                 print("Timeout during connection")
                                 return None
                             
-                    elif (self.connection_made_for_1.is_set()):
+                    elif (self.connection_made_from_adv.is_set()):
                         await asyncio.sleep_ms(500)
                         print("Device is found from advertising")
                         return True
@@ -226,8 +227,9 @@ class Badge:
                 #this flags the good match, should already be a good match if connected
                 self.good_match.set()
                 add = connection.device
-                self.already_connected.add(add) #work with set
-                self.connection_made_for_1.set()
+#----------and this here
+                #self.already_connected.add(add) #work with set
+                self.connection_made_from_adv.set()
 
                 #this is weird, pulls up an address of the conected device
                 #looks like this just got addressed
@@ -296,20 +298,8 @@ class Badge:
 
     #formula. good, but the constants can be different
 #--------------------------------------------- work on the equation 
-#rssi at one meter: 60
     def rssi_meters(self, rssi):
-        return f"{10**((-60-rssi)/(10*2.5))}"
-
-    def smooth_rssi(self, rssi, alpha=0.2):
-        smoothed_rssi = self.smoothed_rssi
-        if self.smoothed_rssi is None:
-            self.smoothed_rssi = rssi  # initialize first value
-        else:
-            self.smoothed_rssi = alpha * rssi + (1 - alpha) * self.smoothed_rssi
-        return smoothed_rssi
-
-
-
+        return f"{10**((-50-rssi)/(10*3.5))}"
     
     #based on the rssi, lights up different colors
     #references humanize_rssi
@@ -329,7 +319,6 @@ class Badge:
 #-------------- These values are not right
                 if rssi > -60:
                     await asyncio.sleep_ms(200)
-
                     led_off()
                     await asyncio.sleep_ms(200)
 
@@ -385,7 +374,7 @@ class Badge:
     #target_rssi can be different and should be looked over
     async def search_with_scan(self, addr, timeout_s):
 
-        self.connection_made_for_1.clear()      #clear the event for searching
+        self.connection_made_from_adv.clear()      #clear the event for searching
         #self.connection_found.clear()           #clear the event for debugging
 
         self.connection_made.clear()    #OK to start the LED loop
@@ -417,7 +406,6 @@ class Badge:
                     
                         if str(result.device) == str(addr):
 
-                            
                             self.current_rssi = result.rssi     #both start
                             self.is_tracking = True               #the LED loop
 
@@ -427,6 +415,8 @@ class Badge:
 #-------------------------- idk if we need this protection -------------------------------
                             if self.current_rssi > target_rssi:
                                     print("Target reached!")
+                                    print("Added to the set of already connected")
+                                    self.already_connected.add(result.device) #work with set
                                 #target_count += 1
 
                                 #see what this does
@@ -459,9 +449,7 @@ class Badge:
 
                                                                 
                             #links to the function that gives a distance from the rssi
-                            
-                            value_rssi = self.smooth_rssi(self.current_rssi)
-                            distance = self.rssi_meters(value_rssi)
+                            distance = self.rssi_meters(self.current_rssi)
                             print(f"Approximated distance: {distance}m")
 
 #-------------------------- lets see if this does anything
