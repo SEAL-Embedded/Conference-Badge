@@ -150,8 +150,8 @@ class Badge:
                                 print()
                                 connection = await result.device.connect()
 
-                                print("Added to the set of already connected")
-                                self.already_connected.add(result.device) #work with set
+                                #print("Added to the set of already connected")
+                                #elf.already_connected.add(result.device) #work with set
 
                                 await asyncio.sleep_ms(500)
                                 await connection.disconnect()
@@ -206,7 +206,7 @@ class Badge:
                 #this flags the good match, should already be a good match if connected
                 self.good_match.set()
                 add = connection.device
-                self.already_connected.add(add) #work with set
+                #self.already_connected.add(add) #work with set
                 self.connection_made_for_1.set()
 
                 #this is weird, pulls up an address of the conected device
@@ -364,6 +364,8 @@ class Badge:
 #-------------------------- idk if we need this protection -------------------------------
                             if self.current_rssi > target_rssi:
                                     print("Target reached!")
+                                    print("Added to the set of already connected")
+                                    self.already_connected.add(result.device) #work with set
                                 #target_count += 1
 
                                 #see what this does
@@ -453,11 +455,13 @@ class Badge:
 
                 #20 seconds now!!!
                 result = await self.search_with_scan(addr, 10)
-                while not result:
+                count = 0
+                while not result and count < 5:
                     #check if the switch is still on
                     #if switchScan.value():
                     #    print("Try again")
                         result = await self.search_with_scan(addr, 10)
+                        count += 1
                     #else:
                         #break       #so right here, if the people didn't meet and switch is OFF it exits the loop
 
