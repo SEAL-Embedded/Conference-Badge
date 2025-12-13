@@ -25,18 +25,6 @@ turnOn = Pin(27, Pin.OUT)
 
 led = Pin(2, Pin.OUT)
 
-def led_off():
-    red.value(1)
-    green.value(1)
-    blue.value(1)
-
-def led_color(r, g, b):
-    # Inverted logic for common anode
-    red.value(0 if r else 1)
-    green.value(0 if g else 1)
-    blue.value(0 if b else 1)
-    turnOn.value(1)
-
 #switchScan = Pin(11, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
 #switchAdvertise = Pin(10, Pin.IN, Pin.PULL_DOWN) # GP10 for advertising
 
@@ -308,12 +296,12 @@ class Badge:
                 rssi = self.current_rssi
 
                 #turn on
-                led_color(0, 1, 0)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
+                led.value(1)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
                 a = 100
                 #Adjust blink rate based on signal strength
 #-------------- These values are not right
                 await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
-                led_off()
+                led.value(0)
                 await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
 
 
@@ -325,9 +313,9 @@ class Badge:
 
             else:
                 # Ensure LED is OFF when not tracking
-                led_off()
+                led.value(0)
                 await asyncio.sleep_ms(100)
-
+                
     async def celebration_lights(self):
         #led_color(1, 0, 0)             #green
         #await asyncio.sleep_ms(1000)
