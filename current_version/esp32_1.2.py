@@ -18,7 +18,24 @@ _MATCH_CHAR_UUID = bluetooth.UUID("2aca7f5b-02b7-4232-a5f0-56cb9155be7a")
 # How frequently to send advertising beacons.
 _ADV_INTERVAL_MS = 250_000
 
+red = Pin(25, Pin.OUT)
+green = Pin(26, Pin.OUT)
+blue = Pin(14, Pin.OUT)
+turnOn = Pin(27, Pin.OUT)
+
 led = Pin(2, Pin.OUT)
+
+def led_off():
+    red.value(1)
+    green.value(1)
+    blue.value(1)
+
+def led_color(r, g, b):
+    # Inverted logic for common anode
+    red.value(0 if r else 1)
+    green.value(0 if g else 1)
+    blue.value(0 if b else 1)
+    turnOn.value(1)
 
 #switchScan = Pin(11, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
 #switchAdvertise = Pin(10, Pin.IN, Pin.PULL_DOWN) # GP10 for advertising
@@ -150,8 +167,8 @@ class Badge:
                                 print()
                                 connection = await result.device.connect()
 
-                                print("Added to the set of already connected")
-                                self.already_connected.add(result.device) #work with set
+                                #print("Added to the set of already connected")
+                                #self.already_connected.add(result.device) #work with set
 
                                 await asyncio.sleep_ms(500)
                                 await connection.disconnect()
@@ -206,7 +223,7 @@ class Badge:
                 #this flags the good match, should already be a good match if connected
                 self.good_match.set()
                 add = connection.device
-                self.already_connected.add(add) #work with set
+                #self.already_connected.add(add) #work with set
                 self.connection_made_for_1.set()
 
                 #this is weird, pulls up an address of the conected device
@@ -291,29 +308,14 @@ class Badge:
                 rssi = self.current_rssi
 
                 #turn on
-                led.value(1)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
-
+                led_color(0, 1, 0)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
+                a = 100
                 #Adjust blink rate based on signal strength
 #-------------- These values are not right
-                if rssi > -60:
-                    await asyncio.sleep_ms(200)
-                    led.value(0)
-                    await asyncio.sleep_ms(200)
+                await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
+                led_off()
+                await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
 
-                elif rssi > -70:
-                    await asyncio.sleep_ms(400)
-                    led.value(0)
-                    await asyncio.sleep_ms(400)
-
-                elif rssi > -80:
-                    await asyncio.sleep_ms(600)
-                    led.value(0)
-                    await asyncio.sleep_ms(600)
-
-                else:
-                    await asyncio.sleep_ms(800)
-                    led.value(0)
-                    await asyncio.sleep_ms(800)
 
             #elif self.connection_found.is_set():
                 #led_color(0, 0, 1) #we need an actual red
@@ -323,7 +325,7 @@ class Badge:
 
             else:
                 # Ensure LED is OFF when not tracking
-                led.value(0)
+                led_off()
                 await asyncio.sleep_ms(100)
 
     async def celebration_lights(self):
@@ -347,7 +349,7 @@ class Badge:
         print()
         print("Starting to track")
         start_time = time.time()
-        target_rssi = -48
+        target_rssi = -50
         print(f"Scanning for device proximity (target RSSI: {target_rssi})")
         print(f"this is the address it searches for: {addr}")
         print()
@@ -379,6 +381,8 @@ class Badge:
 #-------------------------- idk if we need this protection -------------------------------
                             if self.current_rssi > target_rssi:
                                     print("Target reached!")
+                                    print("Added to the set of already connected")
+                                    self.already_connected.add(result.device) #work with set
                                 #target_count += 1
 
                                 #see what this does
