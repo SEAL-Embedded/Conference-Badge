@@ -1,17 +1,12 @@
 
-#check if the is_tracking is consistent in the code
+#see if the result.device is consistent with the format of the set /in search_with_scan
 
 #the is_tracking should be looked over, (maybe add the new "not_available") 
-# because it influences the internal array that's passed to teh advertising
+# because it influences the internal array that's passed to the advertising
 
-#look over the threshold field that should be passed
-#number of fields value can be changed, but is now set to 10
 #there are a lot of random delayes (awaits), maybe check them out
 
-#check the need for good_match Event
-#add the color choosing part to the manufacturer data in the advertising
-
-#see if the result.device is consistent with the format of the set /in search_with_scan
+#add the color choosing part to the manufacturer data in the advertising (needs hardware)
 
 #no switch version!
 
