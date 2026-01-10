@@ -53,11 +53,13 @@ turnOn = Pin(13, Pin.OUT)
 
 led = Pin(2, Pin.OUT)
 
+#turn off the led
 def led_off():
     red.value(1)
     green.value(1)
     blue.value(1)
 
+#change the color of the led
 def led_color(x):
     # Inverted logic for common anode
     r = (x >> 2) & 1  # Most significant bit (leftmost)
@@ -68,7 +70,6 @@ def led_color(x):
     green.value(0 if g else 1)
     blue.value(0 if b else 1)
     turnOn.value(1)
-
 
 def encode_array(info_list):
     # Use 'b' (signed byte) instead of 'h' (short)
@@ -92,6 +93,7 @@ class Badge:
         self.timeout_s = 10
         self.number_of_elements = 10 #length of the info array 
         self.color_set = self.color()
+        self.value = self.color_set
         #(honestly, better use a set number of elements and pass -1s when not filled out)
         self.set_info = self._pad_array(info_array)
         self.set_target = self._pad_array(find_this)
@@ -129,6 +131,7 @@ class Badge:
             return arr + [-1] * (self.number_of_elements - len(arr))
         return arr[:self.number_of_elements]  # Truncate if too long
 
+    #random color assignment
     def color(self):
         while True:
             # get 3 random bits as a single integer
@@ -143,7 +146,8 @@ class Badge:
     #not sure if we need this fuciton now that I changed everything 
     async def setup_task(self):
         await asyncio.sleep_ms(500)
-        print(f"Badge {self.set_badgename} is set up.")
+        color = self.color()
+        print(f"Badge {self.set_badgename} is set up. Color is {color}")
         print()
         await asyncio.sleep_ms(500)
 
@@ -178,9 +182,11 @@ class Badge:
                             their_tolerance = int(manufacturer_data[1])
                             their_color = int(manufacturer_data[2])
                             print(f"is_tracking: {is_tracking}")
-                            print(f"their match_tolerance: {their_tolerance}")  # Debug print
+                            print(f"their match_tolerance: {their_tolerance} and color {their_color}")  # Debug print
                             print()
 
+                            self.value = self.int_to_binary_int(their_color)
+                            led_color(self.value)
 
                             #if already tracks other device, don't distract it, try other device
                             if is_tracking:
@@ -385,8 +391,10 @@ class Badge:
                 a = 100
                 #Adjust blink rate based on signal strength
                 led.value(1)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
+                led_color(self.value)
                 await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
                 led.value(0)
+                led_off()
                 await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
 
 
