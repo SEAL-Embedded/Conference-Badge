@@ -58,8 +58,12 @@ def led_off():
     green.value(1)
     blue.value(1)
 
-def led_color(r, g, b):
+def led_color(integerr, g, b):
     # Inverted logic for common anode
+    r = (x >> 2) & 1  # Most significant bit (leftmost)
+    g = (x >> 1) & 1  # Middle bit
+    b = x & 1         # Least significant bit (rightmost)
+
     red.value(0 if r else 1)
     green.value(0 if g else 1)
     blue.value(0 if b else 1)
