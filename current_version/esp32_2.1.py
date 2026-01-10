@@ -4,7 +4,7 @@
 #the is_tracking should be looked over, (maybe add the new "not_available") 
 # because it influences the internal array that's passed to the advertising
 
-#there are a lot of random delayes (awaits), maybe check them out
+#there are a lot of random delays (awaits), maybe check them out
 
 #add the color choosing part to the manufacturer data in the advertising (needs hardware)
 
