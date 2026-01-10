@@ -329,7 +329,7 @@ class Badge:
                 
                 rssi = self.current_rssi
 
-                #HARDWARE INPUT 
+                #HARDWARE 
                 a = 100
                 #Adjust blink rate based on signal strength
                 led.value(1)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
@@ -354,7 +354,7 @@ class Badge:
         #led_color(1, 0, 0)             #green
         #await asyncio.sleep_ms(1000)
 
-        #HARDWARE INPUT
+        #HARDWARE
         led.value(1)
         await asyncio.sleep_ms(2000)
         led.value(0)
@@ -382,7 +382,7 @@ class Badge:
             #when the switch is on, find the device and track it, when done the loop is done.
             target_count = 0 
 
-            #HARDWARE INPUT
+            #HARDWARE
             #if not switchScan.value(): 
             #    print("Switch off, exiting the tracking loop")
             #    await asyncio.sleep(1)
@@ -478,7 +478,7 @@ class Badge:
 
         while True:
 
-            #HARDWARE INPUT
+            #HARDWARE
             #if switch is not ON, wait 1 sec
             #while not switchScan.value():
             #    print("Switch off: skipping scanning")
@@ -507,7 +507,7 @@ class Badge:
             count_of_tries = 0
             while not result and count_of_tries < 5:
                     
-                #HARDWARE INPUT
+                #HARDWARE
                 #check if the switch is still on
                 #if switchScan.value():
                 #    print("Try again")
