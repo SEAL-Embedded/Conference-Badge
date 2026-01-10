@@ -45,7 +45,7 @@ green = Pin(14, Pin.OUT)
 blue = Pin(13, Pin.OUT)
 turnOn = Pin(12, Pin.OUT)
 
-led = Pin("LED", Pin.OUT)
+led = Pin(2, Pin.OUT)
 
 def led_off():
     red.value(1)
