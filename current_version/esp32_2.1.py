@@ -31,21 +31,26 @@ led = Pin(2, Pin.OUT)
 #switchAdvertise = Pin(10, Pin.IN, Pin.PULL_DOWN) # GP10 for advertising
 
 ''' legend for the "roles" (?):
+degree = o if hs
+degree = 1 if undergrad
+degree = 2 if graduate
+
 major
 area of study (research)
 speaker/attendee
 undergrad/masters/phd/professional
-company affiliation (boeing/?/etc)
+company affiliation (boeing/strage works/etc)
+
 '''
 
 '''
 #get the LED
-red = Pin(12, Pin.OUT)
-green = Pin(10, Pin.OUT)
-blue = Pin(11, Pin.OUT)
-turnOn = Pin(13, Pin.OUT)
+red = Pin(15, Pin.OUT)
+green = Pin(14, Pin.OUT)
+blue = Pin(13, Pin.OUT)
+turnOn = Pin(12, Pin.OUT)
 
-led = Pin(2, Pin.OUT)
+led = Pin("LED", Pin.OUT)
 
 def led_off():
     red.value(1)
@@ -59,6 +64,7 @@ def led_color(r, g, b):
     blue.value(0 if b else 1)
     turnOn.value(1)
 '''
+
 
 def encode_array(info_list):
     # Use 'b' (signed byte) instead of 'h' (short)
@@ -81,6 +87,7 @@ class Badge:
         self.target_rssi = -48
         self.timeout_s = 10
         self.number_of_elements = 10 #length of the info array 
+        self.color_set = 0 #something randomly assigned
         #(honestly, better use a set number of elements and pass -1s when not filled out)
         self.set_info = self._pad_array(info_array)
         self.set_target = self._pad_array(find_this)
@@ -117,7 +124,11 @@ class Badge:
         if len(arr) < self.number_of_elements:
             return arr + [-1] * (self.number_of_elements - len(arr))
         return arr[:self.number_of_elements]  # Truncate if too long
-    
+
+    def color(self):
+        #something
+        self.color_set
+
     #not sure if we need this fuciton now that I changed everything 
     async def setup_task(self):
         await asyncio.sleep_ms(500)
@@ -139,7 +150,7 @@ class Badge:
 
                         if (result.rssi < -100):
                             continue
-                        
+
                         try:
                             # Get the generator + convert it to list
                             manufacturer_gen = result.manufacturer(0xFFFF)
@@ -154,6 +165,7 @@ class Badge:
                             manufacturer_data = bytes(manufacturer_list[0][1])
                             is_tracking = bool(manufacturer_data[0])
                             their_tolerance = int(manufacturer_data[1])
+                            their_color = int(manufacturer_data[2])
                             print(f"is_tracking: {is_tracking}")
                             print(f"their match_tolerance: {their_tolerance}")  # Debug print
                             print()
@@ -168,8 +180,8 @@ class Badge:
                             info_byte_len = len(self.set_info)
                             target_byte_len = len(self.set_target)
                             
-                            info_bytes = manufacturer_data[2:2 + info_byte_len]
-                            target_bytes = manufacturer_data[2 + info_byte_len:2 + info_byte_len + target_byte_len]
+                            info_bytes = manufacturer_data[3:3 + info_byte_len]
+                            target_bytes = manufacturer_data[3 + info_byte_len:3 + info_byte_len + target_byte_len]
                             
                             #somewhere here would go the color setting
 
@@ -237,7 +249,8 @@ class Badge:
             
             tracking_byte = struct.pack('B', int(self.is_tracking))
             tolerance_byte = struct.pack('B', self.match_tolerance)
-            manufacturer_data = tracking_byte + tolerance_byte + self.adv_name + self.adv_target 
+            color_byte = struct.pack('B', self.color_set)
+            manufacturer_data = tracking_byte + tolerance_byte + color_byte + self.adv_name + self.adv_target 
 
             #print(f"Sending manufacturer data: {manufacturer_data}")       #debugging
             #print(f"Length: {len(manufacturer_data)}")                     #debugging
