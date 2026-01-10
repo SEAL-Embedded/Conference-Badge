@@ -35,7 +35,7 @@ major
 area of study (research)
 speaker/attendee
 undergrad/masters/phd/professional
-company affiliation (boeing/strage works/etc)
+company affiliation (boeing/?/etc)
 '''
 
 '''
