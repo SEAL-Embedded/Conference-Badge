@@ -31,10 +31,34 @@ led = Pin(2, Pin.OUT)
 #switchAdvertise = Pin(10, Pin.IN, Pin.PULL_DOWN) # GP10 for advertising
 
 ''' legend for the "roles" (?):
-degree = o if hs
-degree = 1 if undergrad
-degree = 2 if graduate'''
+major
+area of study (research)
+speaker/attendee
+undergrad/masters/phd/professional
+company affiliation (boeing/strage works/etc)
+'''
 
+'''
+#get the LED
+red = Pin(15, Pin.OUT)
+green = Pin(14, Pin.OUT)
+blue = Pin(13, Pin.OUT)
+turnOn = Pin(12, Pin.OUT)
+
+led = Pin("LED", Pin.OUT)
+
+def led_off():
+    red.value(1)
+    green.value(1)
+    blue.value(1)
+
+def led_color(r, g, b):
+    # Inverted logic for common anode
+    red.value(0 if r else 1)
+    green.value(0 if g else 1)
+    blue.value(0 if b else 1)
+    turnOn.value(1)
+'''
 
 def encode_array(info_list):
     # Use 'b' (signed byte) instead of 'h' (short)
