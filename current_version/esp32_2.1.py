@@ -39,18 +39,18 @@ major
 area of study (research)
 speaker/attendee
 undergrad/masters/phd/professional
-company affiliation (boeing/strage works/etc)
+company affiliation (boeing/?/etc)
 
 '''
 
 '''
 #get the LED
-red = Pin(15, Pin.OUT)
-green = Pin(14, Pin.OUT)
-blue = Pin(13, Pin.OUT)
-turnOn = Pin(12, Pin.OUT)
+red = Pin(12, Pin.OUT)
+green = Pin(10, Pin.OUT)
+blue = Pin(11, Pin.OUT)
+turnOn = Pin(13, Pin.OUT)
 
-led = Pin("LED", Pin.OUT)
+led = Pin(2, Pin.OUT)
 
 def led_off():
     red.value(1)
