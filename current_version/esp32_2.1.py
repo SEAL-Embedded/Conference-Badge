@@ -112,6 +112,10 @@ class Badge:
 
                         print(f"Found device: {result.name()} RSSI: {result.rssi} Address: {result.device}")
                         print()
+
+                        if (result.rssi < -100):
+                            continue
+                        
                         try:
                             # Get the generator + convert it to list
                             manufacturer_gen = result.manufacturer(0xFFFF)
