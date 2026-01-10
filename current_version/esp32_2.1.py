@@ -17,6 +17,7 @@ import aioble
 import asyncio
 import struct
 import time
+import urandom
 
 _BADGE_SERVICE_UUID = bluetooth.UUID("6a94195c-98ff-4f26-9140-bc341ca1a88c")
 _INFO_CHAR_UUID = bluetooth.UUID("aa01b013-dcea-4880-9d89-a47e76c69c3c")
@@ -87,7 +88,7 @@ class Badge:
         self.target_rssi = -48
         self.timeout_s = 10
         self.number_of_elements = 10 #length of the info array 
-        self.color_set = 0 #something randomly assigned
+        self.color_set = self.color()
         #(honestly, better use a set number of elements and pass -1s when not filled out)
         self.set_info = self._pad_array(info_array)
         self.set_target = self._pad_array(find_this)
@@ -126,8 +127,12 @@ class Badge:
         return arr[:self.number_of_elements]  # Truncate if too long
 
     def color(self):
-        #something
-        self.color_set
+        while True:
+            arr = [urandom.getrandbits(1) for _ in range(3)]
+            if arr != [0, 0, 0]:
+                break
+        
+        return arr
 
     #not sure if we need this fuciton now that I changed everything 
     async def setup_task(self):
