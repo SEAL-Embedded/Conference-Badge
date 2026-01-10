@@ -132,6 +132,10 @@ class Badge:
         x = urandom.getrandbits(3)  # returns 0..7
         if x != 0:  # avoid 000
             return x
+    
+    # Convert integer n to an integer representing its binary digits, i.e. 7 becomes 111
+    def int_to_binary_int(n, bits=3):
+        return int(f"{n:0{bits}b}")
 
     #not sure if we need this fuciton now that I changed everything 
     async def setup_task(self):
