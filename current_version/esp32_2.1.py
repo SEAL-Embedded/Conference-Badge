@@ -128,11 +128,10 @@ class Badge:
 
     def color(self):
         while True:
-            arr = [urandom.getrandbits(1) for _ in range(3)]
-            if arr != [0, 0, 0]:
-                break
-        
-        return arr
+        # get 3 random bits as a single integer
+        x = urandom.getrandbits(3)  # returns 0..7
+        if x != 0:  # avoid 000
+            return x
 
     #not sure if we need this fuciton now that I changed everything 
     async def setup_task(self):
