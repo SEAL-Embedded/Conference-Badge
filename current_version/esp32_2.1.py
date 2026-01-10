@@ -44,7 +44,7 @@ company affiliation (boeing/?/etc)
 
 '''
 
-'''
+
 #get the LED
 red = Pin(12, Pin.OUT)
 green = Pin(10, Pin.OUT)
@@ -58,7 +58,7 @@ def led_off():
     green.value(1)
     blue.value(1)
 
-def led_color(integerr, g, b):
+def led_color(x):
     # Inverted logic for common anode
     r = (x >> 2) & 1  # Most significant bit (leftmost)
     g = (x >> 1) & 1  # Middle bit
@@ -68,7 +68,6 @@ def led_color(integerr, g, b):
     green.value(0 if g else 1)
     blue.value(0 if b else 1)
     turnOn.value(1)
-'''
 
 
 def encode_array(info_list):
@@ -132,13 +131,13 @@ class Badge:
 
     def color(self):
         while True:
-        # get 3 random bits as a single integer
-        x = urandom.getrandbits(3)  # returns 0..7
-        if x != 0:  # avoid 000
-            return x
+            # get 3 random bits as a single integer
+            x = urandom.getrandbits(3)  # returns 0..7
+            if x != 0:  # avoid 000
+                return x
     
     # Convert integer n to an integer representing its binary digits, i.e. 7 becomes 111
-    def int_to_binary_int(n, bits=3):
+    def int_to_binary_int(self, n, bits=3):
         return int(f"{n:0{bits}b}")
 
     #not sure if we need this fuciton now that I changed everything 
