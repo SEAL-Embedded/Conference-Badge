@@ -44,14 +44,11 @@ company affiliation (boeing/?/etc)
 
 '''
 
-
 #get the LED
-red = Pin(12, Pin.OUT)
-green = Pin(10, Pin.OUT)
-blue = Pin(11, Pin.OUT)
-turnOn = Pin(13, Pin.OUT)
-
-led = Pin(2, Pin.OUT)
+red = Pin(25, Pin.OUT)
+green = Pin(26, Pin.OUT)
+blue = Pin(27, Pin.OUT)
+turnOn = Pin(14, Pin.OUT)
 
 #turn off the led
 def led_off():
@@ -133,11 +130,7 @@ class Badge:
 
     #random color assignment
     def color(self):
-        while True:
-            # get 3 random bits as a single integer
-            x = urandom.getrandbits(3)  # returns 0..7
-            if x != 0:  # avoid 000
-                return x
+        return (urandom.getrandbits(3) % 7) + 1 
     
     # Convert integer n to an integer representing its binary digits, i.e. 7 becomes 111
     def int_to_binary_int(self, n, bits=3):
@@ -185,9 +178,6 @@ class Badge:
                             print(f"their match_tolerance: {their_tolerance} and color {their_color}")  # Debug print
                             print()
 
-                            self.value = self.int_to_binary_int(their_color)
-                            led_color(self.value)
-
                             #if already tracks other device, don't distract it, try other device
                             if is_tracking:
                                 print("Device is in tracking mode, don't connect")
@@ -230,6 +220,9 @@ class Badge:
                                 print("Connecting to let them know!")
                                 print()
                                 connection = await result.device.connect()
+
+                                self.value = self.int_to_binary_int(their_color)
+                                led_color(self.value)
 
                                 self.connection_made.set()
 
