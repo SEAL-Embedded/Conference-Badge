@@ -56,18 +56,6 @@ def led_off():
     green.value(1)
     blue.value(1)
 
-#change the color of the led
-def led_color(x):
-    # Inverted logic for common anode
-    r = (x >> 2) & 1  # Most significant bit (leftmost)
-    g = (x >> 1) & 1  # Middle bit
-    b = x & 1         # Least significant bit (rightmost)
-
-    red.value(0 if r else 1)
-    green.value(0 if g else 1)
-    blue.value(0 if b else 1)
-    turnOn.value(1)
-
 def encode_array(info_list):
     # Use 'b' (signed byte) instead of 'h' (short)
     format_str = "<" + "b" * len(info_list)
@@ -90,7 +78,6 @@ class Badge:
         self.timeout_s = 10
         self.number_of_elements = 10 #length of the info array 
         self.color_set = self.color()
-        self.value = self.color_set
         #(honestly, better use a set number of elements and pass -1s when not filled out)
         self.set_info = self._pad_array(info_array)
         self.set_target = self._pad_array(find_this)
@@ -128,13 +115,25 @@ class Badge:
             return arr + [-1] * (self.number_of_elements - len(arr))
         return arr[:self.number_of_elements]  # Truncate if too long
 
+    #change the color of the led
+    def led_on(self):
+        # Inverted logic for common anode
+        x = self.color_set
+        r = (x >> 2) & 1  # Most significant bit (leftmost)
+        g = (x >> 1) & 1  # Middle bit
+        b = x & 1         # Least significant bit (rightmost)
+
+        #debugging
+        print(f"r = {r}, g = {g}, b = {b}")
+
+        red.value(0 if r else 1)
+        green.value(0 if g else 1)
+        blue.value(0 if b else 1)
+        turnOn.value(1)
+
     #random color assignment
     def color(self):
         return (urandom.getrandbits(3) % 7) + 1 
-    
-    # Convert integer n to an integer representing its binary digits, i.e. 7 becomes 111
-    def int_to_binary_int(self, n, bits=3):
-        return int(f"{n:0{bits}b}")
 
     #not sure if we need this fuciton now that I changed everything 
     async def setup_task(self):
@@ -221,8 +220,7 @@ class Badge:
                                 print()
                                 connection = await result.device.connect()
 
-                                self.value = self.int_to_binary_int(their_color)
-                                led_color(self.value)
+                                self.color_set = their_color
 
                                 self.connection_made.set()
 
@@ -384,7 +382,7 @@ class Badge:
                 a = 100
                 #Adjust blink rate based on signal strength
                 led.value(1)  # Red is 001, blue is 010, green is 100 (or adjust as needed)
-                led_color(self.value)
+                self.led_on()
                 await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
                 led.value(0)
                 led_off()
