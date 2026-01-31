@@ -522,9 +522,6 @@ class Badge:
                                         print("Added to the set of already connected")
                                         self.already_connected.add(result.device)       #work with set
                                         
-                                        #turn on the celebration lights
-                                        await self.celebration_lights()
-                                        #random delay
                                         await asyncio.sleep_ms(500)
 
                                         self.is_tracking = False          #also clear these fields
