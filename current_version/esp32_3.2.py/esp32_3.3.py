@@ -79,26 +79,26 @@ def rgb_off():
 
 # Given an RSSI value, maps it to a float that represents its color and brightness
 def show_rssi_color(rssi):
-    # Map RSSI from [-90 .. -40] → [0 .. 1]
-    t = (rssi + 90) / 50
+    FAR_RSSI   = -85
+    NEAR_RSSI  = -58   # ≈ 0.5 m
+    GAMMA      = 5.0   # 👈 heavier weighting
+
+    rssi = clamp(rssi, FAR_RSSI, NEAR_RSSI)
+
+    t = (rssi - FAR_RSSI) / (NEAR_RSSI - FAR_RSSI)
     t = clamp(t)
 
-    # Red → Green gradient
-    r_col = 1 - t
-    g_col = t
+    # Aggressive non-linear weighting
+    t_w = t ** GAMMA
+
+    r_col = 1 - t_w
+    g_col = t_w
     b_col = 0
 
-    # Optional brightness scaling (stronger signal = brighter)
-    brightness = 0.2 + 0.8 * t
-
-    set_rgb(
-        r_col * brightness,
-        g_col * brightness,
-        b_col * brightness
-    )
+    brightness = 0.3 + 0.7 * t
 
     set_rgb(r_col * brightness, g_col * brightness, b_col * brightness)
-
+    
 def encode_array(info_list):
     # Use 'b' (signed byte) instead of 'h' (short)
     format_str = "<" + "b" * len(info_list)
