@@ -47,9 +47,9 @@ company affiliation (boeing/?/etc)
 
 '''
 #get the recognition LED
-red = Pin(32, Pin.OUT)
+red = Pin(13, Pin.OUT)
 green = Pin(33, Pin.OUT)
-blue = Pin(13, Pin.OUT)
+blue = Pin(12, Pin.OUT)
 switch = Pin(5, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
 
 #turn off the led
@@ -297,7 +297,7 @@ class Badge:
                             try:
                                 print("Connecting to let them know!")
                                 print()
-                                self.color_set = their_color
+                                self.color_set = ((their_color + self.color_set - 1) % 7) + 1
                                 connection = await result.device.connect()
 
                                 self.connection_made.set()
@@ -462,6 +462,7 @@ class Badge:
                 #Adjust blink rate based on signal strength
                 led_set_color(self.color_set)
                 show_rssi_color(self.current_rssi, self.is_tracking)
+                print("color:" + self.color)
                 await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
                 rgb_off()
                 await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
