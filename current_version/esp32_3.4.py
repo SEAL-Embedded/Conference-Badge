@@ -49,7 +49,7 @@ company affiliation (boeing/?/etc)
 #get the recognition LED
 red = Pin(13, Pin.OUT)
 green = Pin(33, Pin.OUT)
-blue = Pin(12, Pin.OUT)
+blue = Pin(32, Pin.OUT)
 switch = Pin(5, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
 
 #turn off the led
@@ -68,6 +68,7 @@ def led_set_color(color_code):
     green.value(0 if g else 1)
     blue.value(0 if b else 1)
     turnOn.value(1)
+    print("This displayed color is: ", color_code)
 
 # Set the proximity tracking LED
 r = PWM(Pin(25))
@@ -197,7 +198,9 @@ class Badge:
     
     #random color assignment
     def color(self):
-        return (urandom.getrandbits(3) % 7) + 1 
+        x = (urandom.getrandbits(3) % 7) + 1
+        print("This device's color is: ", x)
+        return x
 
     #not sure if we need this fuciton now that I changed everything 
     async def setup_task(self):
@@ -461,8 +464,9 @@ class Badge:
                 a = 100
                 #Adjust blink rate based on signal strength
                 led_set_color(self.color_set)
+                print(self.color_set)
+                
                 show_rssi_color(self.current_rssi, self.is_tracking)
-                print("color:" + self.color)
                 await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
                 rgb_off()
                 await asyncio.sleep_ms(int(a*(10**((-50-rssi)/(10*3.5)))))
