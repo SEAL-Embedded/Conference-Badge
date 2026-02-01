@@ -476,6 +476,7 @@ class Badge:
             else:
                 # Ensure LED is OFF when not tracking
                 led.off()
+                set_rgb(0, 0, 1)
                 await asyncio.sleep_ms(100)
 
 
@@ -556,7 +557,7 @@ class Badge:
                                         self.already_connected.add(result.device)       #work with set
                                         
                                         #turn on the celebration lights
-                                        await self.celebration_lights()
+                                        # await self.celebration_lights()
                                         #random delay
                                         await asyncio.sleep_ms(500)
 
