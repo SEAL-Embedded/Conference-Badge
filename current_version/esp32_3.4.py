@@ -105,7 +105,7 @@ def show_rssi_color(rssi, matched):
     # Map RSSI from [-90 .. -40] → [0 .. 1]
     if not matched:
         # Not matched → full blue
-        set_rgb(0, 0, 1)
+        rgb_off()
         return
     t = (rssi + 90) / 50
     t = clamp(t)
@@ -203,8 +203,8 @@ class Badge:
     async def setup_task(self):
         await asyncio.sleep_ms(500)
         print(f"Badge {self.set_badgename}")
-        color = self.color()
-        set_rgb(0, 0, 1)
+        led_set_color(7)
+        rgb_off()
 
         print()
         await asyncio.sleep_ms(500)
@@ -476,7 +476,7 @@ class Badge:
             else:
                 # Ensure LED is OFF when not tracking
                 led.off()
-                set_rgb(0, 0, 1)
+                rgb_off()
                 await asyncio.sleep_ms(100)
 
 
@@ -550,8 +550,8 @@ class Badge:
                                         print("Another connection made!!!")
                                         print("************||************")
                                         print()  
-                                        set_rgb(0, 0, 1)
-                                        led_off()
+                                        rgb_off()
+                                        led_set_color(7)
 
                                         print("Added to the set of already connected")
                                         self.already_connected.add(result.device)       #work with set
