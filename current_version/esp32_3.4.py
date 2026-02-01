@@ -297,8 +297,8 @@ class Badge:
                             try:
                                 print("Connecting to let them know!")
                                 print()
-                                self.color_set = ((their_color + self.color_set - 1) % 7) + 1
                                 connection = await result.device.connect()
+                                self.color_set = their_color
 
                                 self.connection_made.set()
 
