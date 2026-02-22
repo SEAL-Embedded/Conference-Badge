@@ -47,7 +47,7 @@ led = Pin(2, Pin.OUT)
 red = Pin(13, Pin.OUT)
 green = Pin(33, Pin.OUT)
 blue = Pin(32, Pin.OUT)
-switch = Pin(12, Pin.PULL_DOWN, Pin.PULL_UP)  # GP11 for scanning
+switch = Pin(12, Pin.IN, Pin.PULL_UP)  # GP11 for scanning
 
 #turn off the led
 def led_off():
@@ -175,6 +175,13 @@ class Badge:
         if len(arr) < self.number_of_elements:
             return arr + [-1] * (self.number_of_elements - len(arr))
         return arr[:self.number_of_elements]  # Truncate if too long
+    
+    async def celebration_lights(self):
+        #led_color(1, 0, 0)             #green
+        #await asyncio.sleep_ms(1000)
+        for i in range(7):
+            led_set_color(i)
+            await asyncio.sleep_ms(2000)
     
     #If for whatever reason they change their addresses writing in the new updates
     #THIS WILL CRASH EVERYTHING
@@ -528,11 +535,11 @@ class Badge:
                             if _BADGE_SERVICE_UUID in result.services():
                                 
                                 retry_count = 0
-                                #print("entered the scanning loop")      #debugging
-                                #print()
+                                print("entered the scanning loop")      #debugging
+                                print()
 
                                 result_mac = self._extract_mac_address(result.device)
-                                #print(result_mac)
+                                print(result_mac)
                                 
                                 if result_mac == addr:
 
@@ -569,7 +576,7 @@ class Badge:
                                             
                                             #turn on the celebration lights
                                             #HARDWARE
-                                            # await self.celebration_lights()
+                                            await self.celebration_lights()
 
                                             #random delay
                                             await asyncio.sleep_ms(500)
