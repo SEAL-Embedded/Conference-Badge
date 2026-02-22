@@ -47,7 +47,7 @@ led = Pin(2, Pin.OUT)
 red = Pin(13, Pin.OUT)
 green = Pin(33, Pin.OUT)
 blue = Pin(32, Pin.OUT)
-switch = Pin(12, Pin.IN, Pin.PULL_UP)  # GP11 for scanning
+switch = Pin(12, Pin.PULL_DOWN, Pin.PULL_UP)  # GP11 for scanning
 
 #turn off the led
 def led_off():
@@ -69,9 +69,9 @@ def led_set_color(color_code):
     print("This displayed color is: ", color_code)
 
 # Set the proximity tracking LED
-g = PWM(Pin(25))
-b = PWM(Pin(26))
-r = PWM(Pin(27))
+r = PWM(Pin(25))
+g = PWM(Pin(26))
+b = PWM(Pin(27))
 turnOn = Pin(14, Pin.OUT)
 led = Pin(2, Pin.OUT)
 
@@ -528,11 +528,11 @@ class Badge:
                             if _BADGE_SERVICE_UUID in result.services():
                                 
                                 retry_count = 0
-                                print("entered the scanning loop")      #debugging
-                                print()
+                                #print("entered the scanning loop")      #debugging
+                                #print()
 
                                 result_mac = self._extract_mac_address(result.device)
-                                print(result_mac)
+                                #print(result_mac)
                                 
                                 if result_mac == addr:
 
