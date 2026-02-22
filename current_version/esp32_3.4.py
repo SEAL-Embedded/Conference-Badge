@@ -47,7 +47,7 @@ led = Pin(2, Pin.OUT)
 red = Pin(13, Pin.OUT)
 green = Pin(33, Pin.OUT)
 blue = Pin(32, Pin.OUT)
-switch = Pin(5, Pin.IN, Pin.PULL_DOWN)  # GP11 for scanning
+switch = Pin(12, Pin.IN, Pin.PULL_UP)  # GP11 for scanning
 
 #turn off the led
 def led_off():
