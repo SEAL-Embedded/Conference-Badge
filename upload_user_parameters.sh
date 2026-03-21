@@ -19,13 +19,13 @@ else
 fi
 echo
 
-# --- SAFETY CHECK ---
+# tells you if nothing is detected
 if [[ -z "$PORT" ]]; then
   echo "No ESP32 detected."
   exit 1
 fi
 
-# --- USER INPUT ---
+# Get user input
 echo "Research field:"
 read RESEARCH_FIELD
 
@@ -35,11 +35,11 @@ read HOME_INSTITUTION
 echo "Company affiliation:"
 read COMPANY_AFFILIATION
 
-# --- OPTIONAL: AUTO DEVICE ID ---
+# gets the device ID, which is unique to every ESP32
 DEVICE_ID=$(date +%s)
 
 mkdir -p ./data_upload
-# --- CREATE CONFIG FILE ---
+# create the configuration file
 printf '{
   "device_id": "%s",
   "research_field": "%s",
@@ -54,11 +54,38 @@ printf '{
 echo
 echo "Uploading config to ESP32..."
 
-# --- UPLOAD USING mpremote ---
+# upload the file
 python3 -m mpremote connect "$PORT" fs cp ./data_upload/config.json :/config.json
 
-# --- OPTIONAL: UPLOAD main.py IF NEEDED ---
+
 # mpremote connect "$PORT" fs cp ./main.py :/main.py
 
-echo "Provisioning complete!"
+echo "Provisioning complete"
 echo "Device ID: $DEVICE_ID"
+
+# After creating this file, you can have it run on startup by doing something like the following:
+# Note that this will need some tweaking for the specific directories and stuff
+
+# chmod +x get_user_parameters.sh
+#./get_user_parameters.sh
+
+#sudo nano /etc/systemd/system/get_user_parameters.service
+
+#[Unit]
+#Description=Get User Parameters
+#After=network.target
+
+#[Service]
+#User=IDK PUT SOMETHING HERE DEPENDS ON THE DEVICE
+#WorkingDirectory=/WHEREVER YOUR DIRECTORY IS
+#ExecStart=/YOUR BASH FILE DIRECTORY/get_user_parameters.sh
+#Restart=always
+
+#[Install]
+#WantedBy=multi-user.target
+
+#sudo systemctl daemon-reload
+#sudo systemctl enable get_user_parameters
+#sudo systemctl start get_user_parameters
+
+#There's a way to stop it on every startup with some sudo systemctl command but I don't remember at the moment
