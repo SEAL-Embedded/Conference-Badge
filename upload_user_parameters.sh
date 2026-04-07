@@ -9,15 +9,28 @@ clear
 echo "MicroPython Provisioning Tool"
 echo
 
-PORT=$1
 
+echo "Waiting for ESP32..."
+
+"Will continue to search until an esp is found"
+while true; do
+  PORT=$(ls /dev/ttyUSB* /dev/tty.usbserial* /dev/cu.usbserial* 2>/dev/null | head -n 1)
+
+  if [[ -n "$PORT" ]]; then
+    echo "Found ESP32 on $PORT"
+    break
+  fi
+
+  sleep 1
+done
+'''
 if [[ -z "$PORT" ]]; then
     PORT=$(ls /dev/ttyUSB* /dev/tty.usbserial* /dev/cu.usbserial* 2>/dev/null | head -n 1)
     echo "Using $PORT as default port."
 else
     echo "Using port $PORT."
 fi
-echo
+echo'''
 
 # tells you if nothing is detected
 if [[ -z "$PORT" ]]; then
