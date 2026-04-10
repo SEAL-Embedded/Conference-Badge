@@ -20,7 +20,9 @@ while true; do
     echo "Found ESP32 on $PORT"
     break
   fi
-
+  else
+    echo "Finding ESP32"
+  fi
   sleep 1
 done
 '''
@@ -48,6 +50,9 @@ read HOME_INSTITUTION
 echo "Company affiliation:"
 read COMPANY_AFFILIATION
 
+echo "Name:"
+read NAME
+
 # gets the device ID, which is unique to every ESP32
 DEVICE_ID=$(date +%s)
 
@@ -58,11 +63,13 @@ printf '{
   "research_field": "%s",
   "home_institution": "%s",
   "company_affiliation": "%s"
+  "name": "%s"
 }\n' \
 "$DEVICE_ID" \
 "$RESEARCH_FIELD" \
 "$HOME_INSTITUTION" \
-"$COMPANY_AFFILIATION" > ./data_upload/config.json
+"$COMPANY_AFFILIATION" \
+"$NAME" \ > ./data_upload/config.json
 
 echo
 echo "Uploading config to ESP32..."
