@@ -1,0 +1,501 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f2eb;--surface:#fffcf5;--border:#d4cdb8;--border-dark:#b0a890;
+  --ink:#1a1814;--ink2:#5a5548;--ink3:#9a9080;
+  --green:#2d6a4f;--green-bg:#eaf4ee;--green-border:#a8d5b5;
+  --amber:#8a6200;--amber-bg:#fff8e6;--amber-border:#f0d080;
+  --red:#8a2020;--red-bg:#fdf0f0;--red-border:#f0b0b0;
+  --blue:#1a3a6a;--blue-bg:#eef4fd;--blue-border:#a8c4f0;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6}
+.wrap{max-width:680px;margin:0 auto;padding:1.5rem 1rem 4rem}
+
+.header{border-bottom:2px solid var(--ink);padding-bottom:1rem;margin-bottom:2rem}
+.header-top{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem}
+.title{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:-0.02em}
+.title span{color:var(--ink3);font-weight:400}
+.event-tag{font-family:var(--mono);font-size:10px;border:1px solid var(--border-dark);padding:3px 8px;color:var(--ink2);white-space:nowrap}
+.subtitle{font-size:12px;color:var(--ink3);margin-top:4px;font-family:var(--mono)}
+
+.stepper{display:flex;align-items:center;gap:0;margin-bottom:2rem;border:1px solid var(--border);background:var(--surface)}
+.step-btn{flex:1;padding:10px 6px;font-family:var(--mono);font-size:10px;letter-spacing:0.05em;text-align:center;cursor:pointer;border:none;background:transparent;color:var(--ink3);border-right:1px solid var(--border);transition:all 0.15s;line-height:1.4}
+.step-btn:last-child{border-right:none}
+.step-btn.active{background:var(--ink);color:#f5f2eb}
+.step-btn.done{background:var(--green-bg);color:var(--green)}
+.step-num{display:block;font-size:16px;font-weight:600;margin-bottom:2px}
+
+.card{background:var(--surface);border:1px solid var(--border);padding:1.25rem;margin-bottom:1rem}
+.card-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink2);margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:0.05em;text-transform:uppercase}
+input[type=text], select{width:100%;background:var(--bg);border:1px solid var(--border);padding:8px 10px;font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;border-radius:0;transition:border-color 0.15s;-webkit-appearance:none}
+input[type=text]:focus, select:focus{border-color:var(--ink)}
+select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a5548'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+
+.tag-legend{display:flex;gap:12px;margin-bottom:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--ink3)}
+.dot{width:8px;height:8px;border:1px solid}
+.dot.iam{background:var(--blue-bg);border-color:var(--blue-border)}
+.dot.meet{background:var(--green-bg);border-color:var(--green-border)}
+.dot.both{background:var(--amber-bg);border-color:var(--amber-border)}
+
+.tag-hint{font-size:11px;color:var(--ink3);margin-bottom:12px;font-family:var(--mono);padding:6px 8px;border-left:2px solid var(--border-dark)}
+
+.cat-label{font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink3);margin:12px 0 6px;display:flex;align-items:center;gap:6px}
+.cat-label .idx{color:var(--ink3);font-size:9px}
+.cat-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{padding:5px 10px;font-size:12px;font-family:var(--mono);border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:all 0.12s;user-select:none;color:var(--ink2)}
+.tag:hover{border-color:var(--border-dark)}
+.tag.iam{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue)}
+.tag.meet{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.tag.both{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber)}
+
+.preview-badge{border:2px solid var(--ink);background:var(--surface);padding:1.25rem;position:relative;margin-bottom:1rem}
+.preview-badge::before{content:'CONFERENCE BADGE';position:absolute;top:-1px;left:12px;transform:translateY(-50%);background:var(--surface);padding:0 6px;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--ink3)}
+.pb-name{font-family:var(--mono);font-size:20px;font-weight:600;margin-bottom:2px}
+.pb-sub{font-size:12px;color:var(--ink2);margin-bottom:12px}
+.pb-section{margin-bottom:10px}
+.pb-section-label{font-family:var(--mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.pb-tags{display:flex;flex-wrap:wrap;gap:4px}
+.pb-tag{padding:3px 8px;font-family:var(--mono);font-size:10px;border:1px solid}
+.pb-tag.iam{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue)}
+.pb-tag.meet{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.pb-tag.both{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber)}
+.pb-leds{display:flex;gap:24px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.pb-led{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink3);font-family:var(--mono)}
+.led-circle{width:14px;height:14px;border-radius:50%;border:1px solid var(--border-dark);flex-shrink:0}
+
+.array-display{background:#1a1814;border:1px solid #3a3428;padding:1rem;font-family:var(--mono);font-size:11px;color:#c8c0a8;line-height:1.8;margin-bottom:1rem;overflow-x:auto}
+.array-display .key{color:#f0c44a}
+.array-display .val{color:#4af0c8}
+.array-display .str{color:#a0d4a0}
+.array-display .num{color:#f0904a}
+.array-display .comment{color:#5a5040}
+
+.btn-row{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:1.25rem}
+.btn{padding:10px 20px;font-family:var(--mono);font-size:11px;letter-spacing:0.06em;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;text-transform:uppercase}
+.btn-primary{background:var(--ink);color:var(--bg)}
+.btn-primary:hover{background:#3a3428}
+.btn-ghost{background:transparent;color:var(--ink2);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#1f4d38}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+
+.page{display:none}.page.active{display:block}
+
+.flash-log{background:#1a1814;border:1px solid #3a3428;padding:1rem;font-family:var(--mono);font-size:11px;color:#4af0c8;line-height:2;margin-top:1rem;min-height:80px}
+.flash-bar-wrap{height:3px;background:#3a3428;margin-top:8px}
+.flash-bar{height:100%;width:0%;background:#4af0c8;transition:width 0.3s}
+.flash-done{padding:10px 12px;border:1px solid var(--green-border);background:var(--green-bg);color:var(--green);font-family:var(--mono);font-size:11px;margin-top:10px}
+
+.tolerance-row{display:flex;align-items:center;gap:12px;margin-top:10px}
+.tolerance-row label{font-family:var(--mono);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap}
+input[type=range]{flex:1;height:3px;accent-color:var(--ink)}
+.tol-val{font-family:var(--mono);font-size:13px;font-weight:600;min-width:24px;text-align:right}
+
+.cmd-box{background:#1a1814;border:1px solid #3a3428;padding:10px 12px;font-family:var(--mono);font-size:11px;color:#c8c0a8;margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cmd-text{color:#f0c44a;flex:1;word-break:break-all}
+.copy-btn{background:transparent;border:1px solid #3a3428;color:#5a5040;font-family:var(--mono);font-size:9px;padding:3px 8px;cursor:pointer;white-space:nowrap;transition:all 0.15s}
+.copy-btn:hover{color:#c8c0a8;border-color:#5a5040}
+.copy-btn.copied{color:#4af0c8;border-color:#4af0c8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="header-top">
+      <div class="title">badge<span>.configure</span></div>
+      <div class="event-tag">IEEE RISING STARS</div>
+    </div>
+    <div class="subtitle">// ESP32-WROOM-32 · BLE profile setup</div>
+  </div>
+
+  <div class="stepper">
+    <button class="step-btn active" id="s1" onclick="goStep(1)"><span class="step-num">01</span>IDENTITY</button>
+    <button class="step-btn" id="s2" onclick="goStep(2)"><span class="step-num">02</span>TAGS</button>
+    <button class="step-btn" id="s3" onclick="goStep(3)"><span class="step-num">03</span>PREVIEW</button>
+    <button class="step-btn" id="s4" onclick="goStep(4)"><span class="step-num">04</span>EXPORT</button>
+  </div>
+
+  <!-- PAGE 1 -->
+  <div id="page1" class="page active">
+    <div class="card">
+      <div class="card-title">personal info</div>
+      <div class="field-row">
+        <div class="field"><label>First name</label><input type="text" id="fname" placeholder="Alex" oninput="liveUpdate()"></div>
+        <div class="field"><label>Last name</label><input type="text" id="lname" placeholder="Chen" oninput="liveUpdate()"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Institution / Company</label><input type="text" id="org" placeholder="MIT CSAIL" oninput="liveUpdate()"></div>
+        <div class="field"><label>Badge name (short)</label><input type="text" id="bname" placeholder="A.CHEN" maxlength="12" oninput="liveUpdate()"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">role encoding  <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);font-weight:400">→ index [0][1][2] in info_array</span></div>
+      <div class="field-row">
+        <div class="field">
+          <label>Degree level <span style="color:var(--ink3)">[idx 0]</span></label>
+          <select id="degree" onchange="liveUpdate()">
+            <option value="-1">— select —</option>
+            <option value="0">High school</option>
+            <option value="1">Undergraduate</option>
+            <option value="2">Graduate (MS/PhD)</option>
+            <option value="3">Postdoc</option>
+            <option value="4">Faculty</option>
+            <option value="5">Industry professional</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Conference role <span style="color:var(--ink3)">[idx 1]</span></label>
+          <select id="role" onchange="liveUpdate()">
+            <option value="-1">— select —</option>
+            <option value="0">Attendee</option>
+            <option value="1">Presenter / Speaker</option>
+            <option value="2">Poster author</option>
+            <option value="3">Session chair</option>
+            <option value="4">Sponsor rep</option>
+            <option value="5">Organizer</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Open to <span style="color:var(--ink3)">[idx 2]</span></label>
+          <select id="open" onchange="liveUpdate()">
+            <option value="-1">— select —</option>
+            <option value="0">Just networking</option>
+            <option value="1">Research collaboration</option>
+            <option value="2">Internship / hiring</option>
+            <option value="3">Mentorship (seeking)</option>
+            <option value="4">Mentorship (offering)</option>
+            <option value="5">Co-founder / startup</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Match tolerance</label>
+          <div class="tolerance-row">
+            <label>strict</label>
+            <input type="range" id="tol" min="0" max="3" value="1" step="1" oninput="document.getElementById('tol-val').textContent=this.value;liveUpdate()">
+            <label>loose</label>
+            <span class="tol-val" id="tol-val">1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <span style="font-family:var(--mono);font-size:10px;color:var(--ink3)">step 1 / 4</span>
+      <button class="btn btn-primary" onclick="goStep(2)">next →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div id="page2" class="page">
+    <div class="card">
+      <div class="card-title">research area <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);font-weight:400">→ indices [3..6]</span></div>
+      <div class="tag-legend">
+        <div class="legend-item"><div class="dot iam"></div>i am this</div>
+        <div class="legend-item"><div class="dot meet"></div>want to meet</div>
+        <div class="legend-item"><div class="dot both"></div>both</div>
+      </div>
+      <div class="tag-hint">// tap once = "i am this" · twice = "i want to meet this" · three times = both · four = clear</div>
+      <div class="cat-label">field of study <span class="idx">[idx 3]</span></div>
+      <div class="tags" id="tags-field"></div>
+      <div class="cat-label">research method <span class="idx">[idx 4]</span></div>
+      <div class="tags" id="tags-method"></div>
+      <div class="cat-label">application domain <span class="idx">[idx 5]</span></div>
+      <div class="tags" id="tags-domain"></div>
+      <div class="cat-label">career stage / goal <span class="idx">[idx 6]</span></div>
+      <div class="tags" id="tags-career"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">skills & interests <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);font-weight:400">→ indices [7..9]</span></div>
+      <div class="cat-label">hardware / software <span class="idx">[idx 7]</span></div>
+      <div class="tags" id="tags-hw"></div>
+      <div class="cat-label">company affiliation <span class="idx">[idx 8]</span></div>
+      <div class="tags" id="tags-company"></div>
+      <div class="cat-label">looking for <span class="idx">[idx 9]</span></div>
+      <div class="tags" id="tags-looking"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(1)">← back</button>
+      <button class="btn btn-primary" onclick="goStep(3)">preview →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 3 -->
+  <div id="page3" class="page">
+    <div class="preview-badge">
+      <div class="pb-name" id="pb-name">—</div>
+      <div class="pb-sub" id="pb-sub">—</div>
+      <div class="pb-section">
+        <div class="pb-section-label">i am</div>
+        <div class="pb-tags" id="pb-iam"></div>
+      </div>
+      <div class="pb-section">
+        <div class="pb-section-label">looking to meet</div>
+        <div class="pb-tags" id="pb-meet"></div>
+      </div>
+      <div class="pb-leds">
+        <div class="pb-led"><div class="led-circle" id="led-color"></div>match color (auto)</div>
+        <div class="pb-led"><div class="led-circle" style="background:linear-gradient(90deg,#e24b4a,#f0c44a,#4af0c8)"></div>proximity LED</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">firmware arrays</div>
+      <div class="array-display" id="array-display"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(2)">← edit</button>
+      <button class="btn btn-primary" onclick="goStep(4)">export →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 4 -->
+  <div id="page4" class="page">
+    <div class="card">
+      <div class="card-title">export profile.json</div>
+      <p style="font-size:12px;color:var(--ink2);margin-bottom:1rem;font-family:var(--mono)">// Download profile.json and copy to your ESP32 using mpremote or WebREPL.</p>
+      <div class="array-display" id="json-display"></div>
+      <div class="btn-row" style="margin-top:1rem">
+        <button class="btn btn-green" onclick="downloadJSON()">⬇ download profile.json</button>
+        <button class="btn btn-ghost" onclick="copyJSON()">copy JSON</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">deploy to device</div>
+      <p style="font-family:var(--mono);font-size:11px;color:var(--ink3);margin-bottom:8px">// option A — USB (mpremote)</p>
+      <div class="cmd-box">
+        <span class="cmd-text" id="cmd-mpremote">mpremote connect auto cp profile.json :</span>
+        <button class="copy-btn" onclick="copyCmd('cmd-mpremote',this)">copy</button>
+      </div>
+      <p style="font-family:var(--mono);font-size:11px;color:var(--ink3);margin:12px 0 8px">// option B — WebREPL (wireless, badge must be on WiFi)</p>
+      <div class="cmd-box">
+        <span class="cmd-text" id="cmd-webrepl">webrepl_cli.py -p yourpassword profile.json 192.168.x.x:/profile.json</span>
+        <button class="copy-btn" onclick="copyCmd('cmd-webrepl',this)">copy</button>
+      </div>
+      <p style="font-family:var(--mono);font-size:11px;color:var(--ink3);margin:12px 0 8px">// option C — BLE push (badge firmware must be running provisioning mode)</p>
+      <div class="cmd-box">
+        <span class="cmd-text">mpremote connect auto run provision.py -- --file profile.json</span>
+        <button class="copy-btn" onclick="copyCmd(this.previousElementSibling,this)">copy</button>
+      </div>
+      <div style="margin-top:1rem;padding:10px 12px;border:1px solid var(--amber-border);background:var(--amber-bg);font-family:var(--mono);font-size:11px;color:var(--amber)">
+        // after copying profile.json, restart the badge. it will load the profile on boot via load_profile().
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(3)">← preview</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// TAG DEFINITIONS — each category maps to one array index
+// value = integer encoding for that tag
+const TAG_DEFS = {
+  field:   {idx:3, tags:['EE','CS','MechE','BioE','AeroE','MatSci','Physics','Math','ChemE','CogSci','DataSci','Other STEM']},
+  method:  {idx:4, tags:['Theory','Simulation','Lab/Exp','ML/AI','Hardware','Software','Mixed methods','Field work','Survey','Other']},
+  domain:  {idx:5, tags:['Robotics','Medical/health','Energy','Comms/RF','Embedded','Autonomy','Sustainability','Space','Defense','Consumer tech']},
+  career:  {idx:6, tags:['Seeking internship','Seeking full-time','Looking to hire','Seeking PhD advisor','Seeking postdoc','Considering academia','Considering industry','Open to all']},
+  hw:      {idx:7, tags:['PCB design','FPGA','Embedded C','Python','MATLAB','ROS','CAD/FEA','Data pipelines','Web/App','ML frameworks']},
+  company: {idx:8, tags:['Boeing','Lockheed','Google','Microsoft','Apple','Amazon','NVIDIA','NASA','National Lab','Startup','Academia only','Other']},
+  looking: {idx:9, tags:['Research partner','Mentor','Mentee','Co-founder','Project collaborator','Just talking','Hiring','Being hired']}
+};
+
+// State: tagState[cat][tagIndex] = 0 (off) | 1 (iam) | 2 (meet) | 3 (both)
+const tagState = {};
+Object.keys(TAG_DEFS).forEach(cat => { tagState[cat] = {}; });
+
+const LED_COLORS = [
+  {name:'red',    hex:'#e24b4a'},
+  {name:'green',  hex:'#2d9e6a'},
+  {name:'blue',   hex:'#4a90f0'},
+  {name:'yellow', hex:'#f0c44a'},
+  {name:'cyan',   hex:'#4af0c8'},
+  {name:'magenta',hex:'#d04af0'},
+  {name:'white',  hex:'#e8e0d0'},
+];
+
+let assignedColor = null;
+let currentStep = 1;
+
+function buildTagGrids() {
+  Object.keys(TAG_DEFS).forEach(cat => {
+    const el = document.getElementById('tags-'+cat);
+    TAG_DEFS[cat].tags.forEach((tag, ti) => {
+      tagState[cat][ti] = 0;
+      const btn = document.createElement('button');
+      btn.className = 'tag';
+      btn.textContent = tag;
+      btn.onclick = () => {
+        tagState[cat][ti] = (tagState[cat][ti] + 1) % 4;
+        btn.className = 'tag ' + ['','iam','meet','both'][tagState[cat][ti]];
+        liveUpdate();
+      };
+      el.appendChild(btn);
+    });
+  });
+}
+
+function getArrays() {
+  // info_array and find_this are length 10, indices 0-9
+  const info = new Array(10).fill(-1);
+  const want = new Array(10).fill(-1);
+
+  // Indices 0-2: degree, role, open (from dropdowns)
+  info[0] = parseInt(document.getElementById('degree').value);
+  info[1] = parseInt(document.getElementById('role').value);
+  info[2] = parseInt(document.getElementById('open').value);
+  // For want arrays from dropdowns, we copy same as info (simple match)
+  want[0] = info[0]; want[1] = info[1]; want[2] = info[2];
+
+  // Indices 3-9: from tag states
+  Object.keys(TAG_DEFS).forEach(cat => {
+    const idx = TAG_DEFS[cat].idx;
+    // Find which tag is selected (first iam/both for info, first meet/both for want)
+    let infoVal = -1, wantVal = -1;
+    TAG_DEFS[cat].tags.forEach((_, ti) => {
+      const s = tagState[cat][ti];
+      if ((s === 1 || s === 3) && infoVal === -1) infoVal = ti;
+      if ((s === 2 || s === 3) && wantVal === -1) wantVal = ti;
+    });
+    info[idx] = infoVal;
+    want[idx] = wantVal;
+  });
+
+  return {info, want};
+}
+
+function liveUpdate() {}
+
+function buildPreview() {
+  const fname = document.getElementById('fname').value || 'First';
+  const lname = document.getElementById('lname').value || 'Last';
+  const org = document.getElementById('org').value || 'Institution';
+  const degreeEl = document.getElementById('degree');
+  const deg = degreeEl.options[degreeEl.selectedIndex].text;
+
+  document.getElementById('pb-name').textContent = fname + ' ' + lname;
+  document.getElementById('pb-sub').textContent = org + ' · ' + (deg === '— select —' ? '—' : deg);
+
+  const iamTags = [], meetTags = [];
+  Object.keys(TAG_DEFS).forEach(cat => {
+    TAG_DEFS[cat].tags.forEach((tag, ti) => {
+      const s = tagState[cat][ti];
+      if (s === 1 || s === 3) iamTags.push({tag, cat});
+      if (s === 2 || s === 3) meetTags.push({tag, cat});
+    });
+  });
+
+  const pbIam = document.getElementById('pb-iam');
+  const pbMeet = document.getElementById('pb-meet');
+  pbIam.innerHTML = '';
+  pbMeet.innerHTML = '';
+  (iamTags.length ? iamTags : [{tag:'none selected'}]).forEach(({tag}) => {
+    const s = document.createElement('span');
+    s.className = 'pb-tag iam'; s.textContent = tag; pbIam.appendChild(s);
+  });
+  (meetTags.length ? meetTags : [{tag:'none selected'}]).forEach(({tag}) => {
+    const s = document.createElement('span');
+    s.className = 'pb-tag meet'; s.textContent = tag; pbMeet.appendChild(s);
+  });
+
+  if (!assignedColor) assignedColor = LED_COLORS[Math.floor(Math.random()*LED_COLORS.length)];
+  document.getElementById('led-color').style.background = assignedColor.hex;
+
+  const {info, want} = getArrays();
+  const tol = document.getElementById('tol').value;
+  const bname = document.getElementById('bname').value || 'BADGE';
+
+  document.getElementById('array-display').innerHTML =
+    `<span class="comment"># generated profile arrays</span>\n` +
+    `<span class="key">info_array</span> = [<span class="num">${info.join(', ')}</span>]\n` +
+    `<span class="key">find_this</span>   = [<span class="num">${want.join(', ')}</span>]\n` +
+    `<span class="key">tolerance</span>   = <span class="num">${tol}</span>\n` +
+    `<span class="key">name</span>        = <span class="str">"${bname}"</span>\n\n` +
+    `<span class="comment"># index legend:</span>\n` +
+    `<span class="comment"># [0]=degree [1]=role [2]=open_to [3]=field [4]=method</span>\n` +
+    `<span class="comment"># [5]=domain [6]=career [7]=hw_skill [8]=company [9]=looking</span>`;
+}
+
+function buildJSONDisplay() {
+  const {info, want} = getArrays();
+  const tol = parseInt(document.getElementById('tol').value);
+  const bname = document.getElementById('bname').value || 'BADGE';
+  const fname = document.getElementById('fname').value || '';
+  const lname = document.getElementById('lname').value || '';
+  const org = document.getElementById('org').value || '';
+
+  const obj = {
+    name: bname,
+    full_name: (fname + ' ' + lname).trim(),
+    institution: org,
+    info_array: info,
+    find_this: want,
+    match_tolerance: tol
+  };
+
+  const j = JSON.stringify(obj, null, 2);
+  // syntax highlight
+  const highlighted = j
+    .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="str">"$1"</span>')
+    .replace(/: (-?\d+)/g, ': <span class="num">$1</span>')
+    .replace(/(\[[\d,\s-]+\])/g, s => '<span class="num">'+s+'</span>');
+  document.getElementById('json-display').innerHTML = highlighted;
+  return obj;
+}
+
+function downloadJSON() {
+  const obj = buildJSONDisplay();
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'profile.json';
+  a.click();
+}
+
+function copyJSON() {
+  const obj = buildJSONDisplay();
+  navigator.clipboard.writeText(JSON.stringify(obj, null, 2));
+}
+
+function copyCmd(idOrEl, btn) {
+  const text = typeof idOrEl === 'string'
+    ? document.getElementById(idOrEl).textContent
+    : idOrEl.textContent;
+  navigator.clipboard.writeText(text);
+  btn.textContent = 'copied!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
+}
+
+function goStep(n) {
+  document.getElementById('page'+currentStep).classList.remove('active');
+  document.getElementById('s'+currentStep).classList.remove('active');
+  if (n > currentStep) document.getElementById('s'+currentStep).classList.add('done');
+  else document.getElementById('s'+n).classList.remove('done');
+  currentStep = n;
+  document.getElementById('page'+n).classList.add('active');
+  document.getElementById('s'+n).classList.add('active');
+  document.getElementById('s'+n).classList.remove('done');
+  if (n === 3) buildPreview();
+  if (n === 4) buildJSONDisplay();
+}
+
+buildTagGrids();
+</script>
+</body>
+</html>
