@@ -16,7 +16,8 @@ Each badge will contain a coded representation of the participant’s profile, t
 ### Installing
 
 * Downlaod the latest MircoPython firmware of(and on) the Raspberry Pi Pico W
-* Here is the aioble library: https://docs.openmv.io/library/aioble.html#aioble.scan
+* Here is 1 aioble library: https://docs.openmv.io/library/aioble.html#aioble.scan
+* Here is another aioble library: https://github.com/micropython/micropython-lib
 * Any modifications needed to be made to files/folders
 
 ### Executing program
