@@ -736,3 +736,6 @@ try:
     asyncio.run(main())
 
 except KeyboardInterrupt:
+    turnOn.value(0)
+    led_off()
+    print("Program interrupted. LED turned off.")
