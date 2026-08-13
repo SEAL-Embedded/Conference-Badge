@@ -86,7 +86,6 @@ To provision a badge today, edit that line directly before uploading. Wiring a `
 - **RSSI-based distance is approximate.** It's sensitive to body absorption, walls, and nearby BLE traffic; the two-reading confirmation threshold reduces false positives but doesn't eliminate them.
 - **Session history resets on reboot.** The set of already-matched devices is held in RAM only.
 - **Multi-badge scale is untested.** Behavior with dozens/hundreds of badges advertising and scanning simultaneously hasn't been validated.
-- **Power source is not finalized**, which affects some hardware fix decisions (e.g., LED current-limiting resistor values depend on the rail voltage chosen).
 
 For the day-to-day list of open bugs and their status, see the project's Known Issues documentation rather than this README.
 
