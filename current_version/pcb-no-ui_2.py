@@ -86,9 +86,8 @@ def show_rssi_color(rssi, matched):
     if not matched: # Not matched → (turn off and) full blue 
         rgb_off()
         return
-    t = (rssi + 90) / 50 
-    t = clamp(t)
-
+    t = clamp((rssi + 90) / 50)
+    set_rgb(1-t,t,0) #Changes color as distance changes, should also be bright
     # Red → Green gradient
     r_col = 1 - t
     g_col = t
