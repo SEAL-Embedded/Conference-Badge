@@ -86,16 +86,10 @@ def show_rssi_color(rssi, matched):
     if not matched: # Not matched → (turn off and) full blue 
         rgb_off()
         return
-    t = clamp((rssi + 90) / 50)
-    set_rgb(1-t,t,0) #Changes color as distance changes, should also be bright
-    # Red → Green gradient
-    r_col = 1 - t
-    g_col = t
-    b_col = 0
-    # brightness scaling (stronger signal = brighter)
-    brightness = 0.2 + 0.8 * t
 
-    set_rgb(r_col * brightness, g_col * brightness, b_col * brightness)
+    #Changes color as distance changes, should also be bright
+    t = clamp((rssi + 90) / 50)
+    set_rgb(1-t,t,0) 
 
 # --- WORK ON THIS ASAP
 # matching arrays (something that is got from the outside code)
