@@ -348,7 +348,7 @@ class Badge:
                                                                 #CLAUDE: arrive in - not wrong, but worth knowing it's order-sensitive within one window.
                                                                 #CLAUDE: This is inside find_other so I'm not touching it - flagging for your review.
 
-                    if reciprocated_id is not None and reciprocated_id == best_id:
+                    if reciprocated_device is not None and reciprocated_id == best_id:
                         self.locked_addr = reciprocated_id
                         #this reads result.device.addr's raw bytes directly, no string-parsing.
                         self.device_addr_scan = format_mac(bytes(reciprocated_device.addr))
