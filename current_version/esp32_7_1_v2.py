@@ -26,20 +26,12 @@ def short_id(mac_bytes):
     return bytes(mac_bytes[-3:])
 
 def format_mac(addr_bytes):
-    #Formats raw address bytes (e.g. result.device.addr) into "aa:bb:cc:dd:ee:ff",
-    #directly from the bytes - no string-parsing of a Device repr, so it doesn't
-    #depend on aioble's __str__/__repr__ format at all. Replaces _extract_mac_address
-    #for debug/print purposes (NAI-8).
+    #Replaces _extract_mac_address for debug/print purposes (NAI-8).
     return ':'.join('{:02x}'.format(b) for b in addr_bytes)
 
-#OUTDATED
 #check if this function gets every color evenly
 #CLAUDE: I can't give a real yes/no on "does this get every color evenly" without
-#CLAUDE: your actual badge MAC addresses (or the planned set) to test against - a hash's
-#CLAUDE: real-world distribution over a small, fixed badge population can differ from its
-#CLAUDE: theoretical distribution. Send me the MAC list (or how many badges total) and I'll
-#CLAUDE: literally enumerate every id_a/id_b pair this deployment can produce and check.
-#CLAUDE: This is deferred/non-blocking - everything else can proceed without it.
+#your actual badge MAC addresses (or the planned set) to test against
 def pair_color(id_a, id_b):
     #Deterministic from both MAC-ids so both sides get the same color
     a, b = (id_a, id_b) if id_a < id_b else (id_b, id_a)
@@ -191,11 +183,6 @@ class Badge:
             led_set_color(i % 7 + 1)
             await asyncio.sleep_ms(300)
     
-    #CLAUDE: _extract_mac_address removed (NAI-8) - format_mac() at the top of the file replaces
-    #CLAUDE: its one remaining (debug-only) caller in find_other, and search_with_scan now
-    #CLAUDE: identifies its target via short_id(bytes(result.device.addr)) directly, same as
-    #CLAUDE: find_other already does - so nothing needs the fragile string-parsing version anymore.
-
     #Used once, from setup_task(), to give the badge a default color before any match is found
     def color(self):
         x = (urandom.getrandbits(3) % 7) + 1
@@ -354,37 +341,26 @@ class Badge:
                     if their_ack == self.own_id:
                         reciprocated_device = result.device     #check logic here, it makes sense, but a little confusing
                         reciprocated_id = their_id              #yes, if one found the other being a good match they should be automatically matched
-                        #CLAUDE: replying to "check logic here" - my read: the lock a few lines down only
-                        #CLAUDE: fires if the badge reciprocating me is ALSO my current best_id at the exact
-                        #CLAUDE: moment its packet gets processed. best_id can still change later in the same
-                        #CLAUDE: scan window, so whether a lock happens can depend on which order packets
-                        #CLAUDE: arrive in - not wrong, but worth knowing it's order-sensitive within one window.
-                        #CLAUDE: This is inside find_other so I'm not touching it - flagging for your review.
+                                                                #CLAUDE: replying to "check logic here" - my read: the lock a few lines down only
+                                                                #CLAUDE: fires if the badge reciprocating me is ALSO my current best_id at the exact
+                                                                #CLAUDE: moment its packet gets processed. best_id can still change later in the same
+                                                                #CLAUDE: scan window, so whether a lock happens can depend on which order packets
+                                                                #CLAUDE: arrive in - not wrong, but worth knowing it's order-sensitive within one window.
+                                                                #CLAUDE: This is inside find_other so I'm not touching it - flagging for your review.
 
                     if reciprocated_id is not None and reciprocated_id == best_id:
                         self.locked_addr = reciprocated_id
-                        #CLAUDE: swapped to format_mac() (NAI-8) - _extract_mac_address is removed,
-                        #CLAUDE: this reads result.device.addr's raw bytes directly, no string-parsing.
+                        #this reads result.device.addr's raw bytes directly, no string-parsing.
                         self.device_addr_scan = format_mac(bytes(reciprocated_device.addr))
 
-                        #check this one. maybe without it its better (as in, the smaller MAC defines the color instead.)
                         #CLAUDE: replying to this - "smaller MAC defines the color" would need its own
-                        #CLAUDE: fairness check too (mapping a 3-byte id straight to 1-7 has the same mod-7
-                        #CLAUDE: non-uniformity question as the current hash, just on one id instead of two).
-                        #CLAUDE: I'll test both approaches against real MAC data once I have it (see pair_color,
-                        #CLAUDE: same NAI-9 item) and tell you which is actually more even for this badge set,
-                        #CLAUDE: rather than guessing which "feels" better. Not changing this line until then.
+                        #fairness check too 
                         self.color_set = pair_color(self.own_id, reciprocated_id)
 
                         self.ack_target = reciprocated_id
 
                         #This one has to be updated religiosly. PLEASE
                         self.is_tracking = True 
-
-                        #CLAUDE: connection_made_sca removed (NAI-1, all events gone except is_tracking) -
-                        #CLAUDE: run_task now detects a lock by polling self.is_tracking directly instead,
-                        #CLAUDE: which flips True on the line right above this one, so nothing about *when*
-                        #CLAUDE: run_task notices a lock changes, only *how* it's detected.
                         print("Mutual match locked with:", self.device_addr_scan, "/n")
 
                     else:
@@ -402,27 +378,13 @@ class Badge:
                 await asyncio.sleep_ms(1000)
                 continue
 
-            #CLAUDE (NAI-3): manufacturer_data now comes from self._build_manufacturer_data() (see the new
-            #CLAUDE: method below), which returns the full 26-byte payload while searching or a reduced
-            #CLAUDE: 6-byte payload (tracking/tolerance/color/ack only, arrays dropped) while self.is_tracking
-            #CLAUDE: is True. This method already checks self.is_tracking fresh every call, so the payload
-            #CLAUDE: naturally goes back to full length the moment tracking ends - no extra step needed here.
+            #CLAUDE (NAI-3): manufacturer_data now comes from self._build_manufacturer_data() 
             manufacturer_data = self._build_manufacturer_data()
 
             #extra power drain when tracking for adversiting
             _ADV_INTERVAL_MS = 50_000 if (self.is_tracking) else 100_000
 
-            #CLAUDE (NAI-4): fixed the timeout bug here - the old code did
-            #CLAUDE:     await asyncio.wait_for(await aioble.advertise(...), ADV_REFRESH_S)
-            #CLAUDE: which awaits aioble.advertise() to completion BEFORE wait_for ever wraps a live
-            #CLAUDE: coroutine, so wait_for was wrapping an already-resolved value, not doing anything.
-            #CLAUDE: aioble.advertise() already accepts timeout_ms directly for exactly this purpose,
-            #CLAUDE: so that's used instead and the outer wait_for is removed entirely. Also added
-            #CLAUDE: connectable=False - nothing anywhere in this file ever uses a resulting Connection
-            #CLAUDE: object (no characteristic reads/writes, no .disconnect()), matching is 100% beacon/
-            #CLAUDE: manufacturer-data-driven, so there's no reason to accept a real BLE connection at all.
-            #CLAUDE: One residual thing I can't verify from the .py file alone: please confirm `timeout_ms`
-            #CLAUDE: is the correct parameter name for your installed aioble version before relying on this.
+            #CLAUDE (NAI-4): check if hte timeout_ms has the needde function
             try: 
                 await aioble.advertise(
                     _ADV_INTERVAL_MS,
@@ -436,12 +398,7 @@ class Badge:
             except asyncio.TimeoutError:
                 pass  #normal case: nobody connected, just refresh the payload and re-advertise
 
-    #CLAUDE (NAI-3): builds the manufacturer-data payload for whichever mode we're currently in.
-    #CLAUDE: Searching (is_tracking=False): full 26 bytes - tracking(1)+tolerance(1)+color(1)+ack(3)+
-    #CLAUDE: self_tags(10)+search_tags(10), unchanged from the original format.
-    #CLAUDE: Tracking (is_tracking=True): reduced 6 bytes - tracking(1)+tolerance(1)+color(1)+ack(3),
-    #CLAUDE: arrays dropped entirely, per "transmit everything except arrays." Byte offsets 0-5 are
-    #CLAUDE: identical in both forms - only whether bytes 6-25 exist changes.
+    #CLAUDE builds the manufacturer-data payload for whichever mode we're currently in.
     def _build_manufacturer_data(self):
         tracking_byte = struct.pack('B', int(self.is_tracking))
         tolerance_byte = struct.pack('B', self.match_tolerance)
@@ -457,17 +414,7 @@ class Badge:
         return f"{10**((-50-rssi)/(10*3.5))}"
 
     #based on the rssi, lights up different frequencies with the color chosen by the pair
-    #CLAUDE (NAI-7): rewritten - search_is_going (removed, NAI-1) replaced with self.is_tracking
-    #CLAUDE: directly. Also fixed a fragility: the old code did a single check-then-break the very
-    #CLAUDE: first time it ran, which only "worked" because search_with_scan happens to always set
-    #CLAUDE: is_tracking True (in find_other) before this task is ever created - a coincidence of
-    #CLAUDE: ordering, not a guarantee. Now this loop runs its normal branch continuously and exits
-    #CLAUDE: via return once is_tracking actually goes False - and since search_with_scan's finally
-    #CLAUDE: block also always explicitly cancels this task regardless, this is a second, non-critical
-    #CLAUDE: safety net, not the only way this task ever stops.
-    #CLAUDE: Also deduplicated the distance formula - this now calls self.rssi_meters() instead of
-    #CLAUDE: re-deriving the same log-distance math a second time, so your "constants can be different"
-    #CLAUDE: note on rssi_meters only ever needs to be acted on in one place.
+    #CLAUDE (NAI-7): rewritten, fixed a fragility: the old code did a single check-then-break 
     async def distance_feedback_loop(self):
         while True:
             if not self.is_tracking:
@@ -495,15 +442,7 @@ class Badge:
 
     #tracks the previously found match given its address, exits when reaches timeout
     #target_rssi can be different and should be looked over
-    #CLAUDE (NAI-6): rewritten - identity check now uses short_id(bytes(result.device.addr)) == addr,
-    #CLAUDE: matching exactly how find_other identifies candidates, replacing the old
-    #CLAUDE: _extract_mac_address(...)-based full-MAC-string comparison (which could never succeed,
-    #CLAUDE: since addr is a 3-byte short-id, not a MAC string - this was the actual "connection
-    #CLAUDE: problem" bug). All target_reached/search_is_going event calls removed (NAI-1) - the
-    #CLAUDE: two-consecutive-hits confirmation logic (target_count) is unchanged, just as a plain
-    #CLAUDE: local variable now, same as it already effectively was. Retry/backoff/timeout structure
-    #CLAUDE: (max_retries=3, 500ms backoff, self.timeout_s outer bound, CancelledError re-raise)
-    #CLAUDE: is untouched - per "keep the thing as is, just make necessary updates."
+    #CLAUDE (NAI-6): rewritten - identity check now uses short_id(bytes(result.device.addr)) == add
     async def search_with_scan(self, addr):
 
         lights_loop = asyncio.create_task(self.distance_feedback_loop())
@@ -672,17 +611,7 @@ class Badge:
         return False           
 
     #CLAUDE (NAI-5): rewritten. connection_made_sca/connection_made_adv (removed, NAI-1) replaced with
-    #CLAUDE: polling self.is_tracking directly - this is a like-for-like swap, not a latency change:
-    #CLAUDE: the old code already polled .is_set() every 100ms rather than blocking on the event, so
-    #CLAUDE: the timing here is identical to before. The hardcoded 25 is now the module-level
-    #CLAUDE: _MAX_SEARCH_RETRIES constant (top of file) - easy to adjust, and kept separate from the
-    #CLAUDE: unrelated Pin(25, ...) GPIO assignment elsewhere in the file. Fixed the comment that said
-    #CLAUDE: "2 seconds" on what's actually a 200ms delay - the delay itself is unchanged, only the
-    #CLAUDE: description was wrong. Removed the two unreachable lines after the loop (nothing in this
-    #CLAUDE: file ever causes the while True to exit). Added a defensive self.locked_addr = None reset
-    #CLAUDE: at the end of each cycle - not required for correctness (find_other can't overwrite
-    #CLAUDE: locked_addr again until is_tracking goes back False, which only happens once
-    #CLAUDE: search_with_scan is done reading it), just keeps state clean between cycles.
+    #CLAUDE: polling self.is_tracking directly
     #HARDWARE (fix this)
     async def run_task(self):
         await self.setup_task()
@@ -708,7 +637,7 @@ class Badge:
                 print("Switch off: skipping scanning")
                 await asyncio.sleep_ms(500)
                 
-            #necessary delay, since the device needs to exit the connection state
+            #UNnecessary delay, since the device needs to exit the connection state
             await asyncio.sleep_ms(1500)
             result = await self.search_with_scan(addr)
             count_of_tries = 0
