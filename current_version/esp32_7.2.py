@@ -167,9 +167,10 @@ class Badge:
 
         #new connection setups
         self.own_id = short_id(bluetooth.BLE().config('mac')[1])
-        self.ack_target = _ACK_NONE     #the 3 last digits of the MAC address
-        self.locked_addr = None         #the one chosen!
 
+        #self.ack_target = _ACK_NONE     #the 3 last digits of the MAC address
+        self.locked_addr = None         #the one chosen!
+        self.ack_target: bytes = _ACK_NONE
         #variables/fields that WILL be updated.
         self.current_rssi = None    #for the lights loop
         self.is_tracking = False    #supposed to help with not connecting while tracking
@@ -287,18 +288,6 @@ class Badge:
                         if not manufacturer_list:
                             continue
                         manufacturer_data = bytes(manufacturer_list[0][1])
-                        #CLAUDE: per your "transmit everything except arrays" answer, a tracking-mode
-                        #CLAUDE: badge now sends a SHORT 6-byte payload (tracking+tolerance+color+ack only,
-                        #CLAUDE: no arrays) instead of the full 26 bytes. Please add a length check right here,
-                        #CLAUDE: BEFORE decoding anything else:
-                        #CLAUDE:     if len(manufacturer_data) < 26:
-                        #CLAUDE:         continue  # busy/tracking badge, no arrays present, skip as candidate
-                        #CLAUDE: Without this, the array-decode below will throw (struct.error, empty slice) on
-                        #CLAUDE: every tracking-mode badge, every scan - caught by the except below so it won't
-                        #CLAUDE: crash, but it'll spam "Exception with the manufacturer info" constantly for what
-                        #CLAUDE: is actually normal behavior, not an error. Byte offsets 0-5 (tracking/tolerance/
-                        #CLAUDE: color/ack) are identical in both the 6-byte and 26-byte forms, so everything
-                        #CLAUDE: below this point that only reads bytes 0-5 doesn't need to change at all.
                         is_tracking = bool(manufacturer_data[0])
                         their_tolerance = int(manufacturer_data[1])
 
@@ -348,7 +337,7 @@ class Badge:
                                                                 #CLAUDE: arrive in - not wrong, but worth knowing it's order-sensitive within one window.
                                                                 #CLAUDE: This is inside find_other so I'm not touching it - flagging for your review.
 
-                    if reciprocated_device is not None and reciprocated_id == best_id:
+                    if reciprocated_device is not None and reciprocated_id is not None and reciprocated_id == best_id:
                         self.locked_addr = reciprocated_id
                         #this reads result.device.addr's raw bytes directly, no string-parsing.
                         self.device_addr_scan = format_mac(bytes(reciprocated_device.addr))
