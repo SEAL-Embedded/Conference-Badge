@@ -14,7 +14,7 @@ sys.stdout.buffer.write(b'')
 _BADGE_SERVICE_UUID = bluetooth.UUID("6a94195c-98ff-4f26-9140-bc341ca1a88c")
 _ADV_INTERVAL_MS = 50_000           #two tests: one with this = 100_000 and another with this = 50_000
 ADV_REFRESH_S = 1                   #how often to re-pack tracking/ack/color, since find_other() updates them live
-_MAX_SEARCH_RETRIES = 5             #how many times search_with_scan is ran after a lock before giving up 
+_MAX_SEARCH_RETRIES = 25            #how many times search_with_scan is ran after a lock before giving up 
 interval_us = 150000                #150ms
 window_us = 100000                  #100ms (scan 2/3 of the interval)
 
@@ -118,10 +118,12 @@ class Badge:
                                     distance = self.rssi_meters(self.current_rssi)
                                     print(f"Approximated distance: {distance}m")
 
-                                    await asyncio.sleep_ms(500) 
+                                    await asyncio.sleep_ms(850) 
                                     #this is to exit the scanning loop and start scanning again
                                     print()
                                     continue
+                                else:
+                                    print("wrong id bros")
 
                 except asyncio.CancelledError:
                     # Task was cancelled - clean up and exit
@@ -158,7 +160,7 @@ class Badge:
         while True:
 
             #now the connection is made, get the address and start tracking
-            addr = self.locked_addr
+            addr = b'\xda\xd7\xc6'
 
             result = await self.search_with_scan(addr)
             count_of_tries = 0
