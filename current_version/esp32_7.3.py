@@ -1,5 +1,5 @@
 
-#last updated: 8/24
+#last updated: 09/03
 #switch version!
 
 from machine import Pin, PWM
@@ -20,39 +20,33 @@ _CANDIDATE_RSSI_THRESHOLD = -65   # ignore tag-matches farther than ~conversatio
 _SCAN_CYCLE_MS = 1000
 ADV_REFRESH_S = 1       #how often to re-pack tracking/ack/color, since find_other() updates them live
 _MAX_SEARCH_RETRIES = 25   #how many times run_task retries search_with_scan after a lock before giving up (was 5)
-
-def short_id(mac_bytes):
-    #Last 3 bytes of a MAC
-    return bytes(mac_bytes[-3:])
-
-def format_mac(addr_bytes):
-    #Replaces _extract_mac_address for debug/print purposes (NAI-8).
-    return ':'.join('{:02x}'.format(b) for b in addr_bytes)
-
-#check if this function gets every color evenly
-#CLAUDE: I can't give a real yes/no on "does this get every color evenly" without
-#your actual badge MAC addresses (or the planned set) to test against
-def pair_color(id_a, id_b):
-    #Deterministic from both MAC-ids so both sides get the same color
-    a, b = (id_a, id_b) if id_a < id_b else (id_b, id_a)
-    h = 0
-    for byte in (a + b):
-        h = (h * 31 + byte) & 0xFF
-    return (h % 7) + 1
-
-# Continuous scanning approach:
-interval_us = 150000  # 150ms
+interval_us = 150000  # 150ms, Continuous scanning approach:
 window_us = 100000    # 100ms (scan 2/3 of the interval)
 
 #led = Pin(2, Pin.OUT) #on-board LED
-
 #pins for the pair (static) LED, 32, 33, 25, 26
+# pins for the tracking (pwm) LED, 14, 12, 27
+
+#delay for the set up that might save us.
+time.sleep(2)
+
 red = Pin(25, Pin.OUT)
 green = Pin(26, Pin.OUT)
 blue = Pin(27, Pin.OUT)
 turnOn = Pin(14, Pin.OUT)
 
 switch = Pin(13, Pin.IN, Pin.PULL_UP)  # switch 
+
+r = PWM(Pin(13))
+g = PWM(Pin(33))
+b = PWM(Pin(32))
+
+r.freq(1000)
+g.freq(1000)
+b.freq(1000)
+
+#what does this do...
+#turnOn.value(1)
 
 #turn off the pair LED
 def led_off():
@@ -74,17 +68,22 @@ def led_set_color(color_code):
     turnOn.value(1)
     print("This displayed color is: ", color_code)
 
-# pins for the tracking (pwm) LED, 14, 12, 27
-r = PWM(Pin(13))
-g = PWM(Pin(33))
-b = PWM(Pin(32))
+def short_id(mac_bytes):
+    #Last 3 bytes of a MAC
+    return bytes(mac_bytes[-3:])
 
-r.freq(1000)
-g.freq(1000)
-b.freq(1000)
+def format_mac(addr_bytes):
+    #Replaces _extract_mac_address for debug/print purposes (NAI-8).
+    return ':'.join('{:02x}'.format(b) for b in addr_bytes)
 
-#what does this do...
-#turnOn.value(1)
+#determines the pair color based on the mac address 
+def pair_color(id_a, id_b):
+    #Deterministic from both MAC-ids so both sides get the same color
+    a, b = (id_a, id_b) if id_a < id_b else (id_b, id_a)
+    h = 0
+    for byte in (a + b):
+        h = (h * 31 + byte) & 0xFF
+    return (h % 7) + 1
 
 # Given floats between 0.0 and 1.0, sets the color of the LEDs
 def set_rgb(rr, gg, bb):
@@ -99,6 +98,7 @@ def clamp(x, low = 0.0, high = 1.0):
     if x > high: return high
     return x
 
+#turn pwm led off
 def rgb_off():
     r.duty_u16(65535)
     g.duty_u16(65535)
@@ -231,6 +231,7 @@ class Badge:
     #For us to see how everything is set up, nothing really
     async def setup_task(self):
         print(f"Badge {self.set_badgename}")
+        print(f"ID: {self.own_id}")
         print(f"Badge's self: {self.self_tags}, target: {self.search_tags}")
         await asyncio.sleep_ms(500)
 
@@ -249,143 +250,154 @@ class Badge:
 
     #tracking(1) + tolerance(1) + color(1) + ack(3) + info(10) + target(10) = 26 bytes exactly.
     async def find_other(self):
-        
-        #Get own MAC once before scanning
         #this could be used with the "new" pair color function
-        own_mac = bluetooth.BLE().config('mac')[1]
-        
+        #own_mac = bluetooth.BLE().config('mac')[1]
         while True:
-            if self.is_tracking:
-                await asyncio.sleep_ms(300)  # already locked, nothing to evaluate
-                continue
+            try:
 
-            while not switch.value():
-                print("Switch off: skipping advertising")
-                await asyncio.sleep_ms(1000)
-                continue
+                if self.is_tracking:
+                    await asyncio.sleep_ms(300)  # already locked, nothing to evaluate
+                    continue
 
-            best_id = None
-            best_rssi = -127
-            reciprocated_device = None
-            reciprocated_id = None
-         
-            async with aioble.scan(_SCAN_CYCLE_MS, interval_us, window_us, active=True) as scanner:
-                async for result in scanner:
-                    if _BADGE_SERVICE_UUID not in result.services(): #if its a badge
-                        continue
-                    if result.device in self.already_connected:
-                        print("Already connected to this device once!")
-                        print()
-                        continue 
-                    if result.rssi < -150:
-                        continue
+                while not switch.value():
+                    print("Switch off: skipping advertising")
+                    await asyncio.sleep_ms(1000)
+                    continue
 
-                    try:
-                        print(f"Found device: {result.name()} RSSI: {result.rssi} Address: {result.device}")
-                        print()
-
-                        manufacturer_list = list(result.manufacturer(0xFFFF))
-                        if not manufacturer_list:
+                best_id = None
+                best_rssi = -127
+                reciprocated_device = None
+                reciprocated_id = None
+            
+                async with aioble.scan(_SCAN_CYCLE_MS, interval_us, window_us, active=True) as scanner:
+                    async for result in scanner:
+                        if _BADGE_SERVICE_UUID not in result.services(): #if its a badge
                             continue
-                        manufacturer_data = bytes(manufacturer_list[0][1])
-                        is_tracking = bool(manufacturer_data[0])
-                        their_tolerance = int(manufacturer_data[1])
+                        if result.device in self.already_connected:
+                            print("Already connected to this device once!")
+                            print()
+                            continue 
+                        if result.rssi < -150:
+                            continue
 
-                        #we could just use this one instead of the pair_color function
-                        their_color = int(manufacturer_data[2])
+                        try:
+                            print(f"Found device: {result.name()} RSSI: {result.rssi} Address: {result.device}")
+                            print()
 
-                        their_ack = manufacturer_data[3:6]
+                            manufacturer_list = list(result.manufacturer(0xFFFF))
+                            if not manufacturer_list:
+                                continue
+                            manufacturer_data = bytes(manufacturer_list[0][1])
+                            is_tracking = bool(manufacturer_data[0])
+                            their_tolerance = int(manufacturer_data[1])
 
-                        print(f"is_tracking?: {is_tracking}")
-                        print(f"their match_tolerance: {their_tolerance} and color {their_color}")  # Debug print
-                        print()
+                            #we could just use this one instead of the pair_color function
+                            their_color = int(manufacturer_data[2])
 
-                        info_byte_len = len(self.self_tags)     #these are supplementary
-                        target_byte_len = len(self.search_tags) #to get the positions rigt
+                            their_ack = manufacturer_data[3:6]
 
-                        info_bytes = manufacturer_data[6:6 + info_byte_len]
-                        target_bytes = manufacturer_data[6 + info_byte_len:6 + info_byte_len + target_byte_len]
+                            print(f"is_tracking?: {is_tracking}")
+                            print(f"their match_tolerance: {their_tolerance} and color {their_color}")  # Debug print
+                            print()
 
-                        read_info = decode_array(info_bytes)
-                        read_target = decode_array(target_bytes)
+                            info_byte_len = len(self.self_tags)     #these are supplementary
+                            target_byte_len = len(self.search_tags) #to get the positions rigt
 
-                    except Exception as e:
-                        print(f"Exception with the manufacturer info: {e}")
-                        continue
+                            info_bytes = manufacturer_data[6:6 + info_byte_len]
+                            target_bytes = manufacturer_data[6 + info_byte_len:6 + info_byte_len + target_byte_len]
 
-                    if is_tracking:
-                        continue  #they're already locked with someone else
+                            read_info = decode_array(info_bytes)
+                            read_target = decode_array(target_bytes)
 
-                    if not self.check_match(read_info, read_target, their_tolerance):
-                        continue
+                        except Exception as e:
+                            print(f"Exception with the manufacturer info: {e}")
+                            continue
 
-                    print(f"their tags: {read_info}, they are looking for: {read_target}")
+                        if is_tracking:
+                            continue  #they're already locked with someone else
 
-                    their_id = short_id(bytes(result.device.addr))
+                        if not self.check_match(read_info, read_target, their_tolerance):
+                            continue
 
-                    if result.rssi > best_rssi and result.rssi >= _CANDIDATE_RSSI_THRESHOLD:
-                        best_rssi = result.rssi
-                        best_id = their_id
+                        print(f"their tags: {read_info}, they are looking for: {read_target}")
 
-                    if their_ack == self.own_id:
-                        reciprocated_device = result.device     #check logic here, it makes sense, but a little confusing
-                        reciprocated_id = their_id              #yes, if one found the other being a good match they should be automatically matched
-                                                                #CLAUDE: replying to "check logic here" - my read: the lock a few lines down only
-                                                                #CLAUDE: fires if the badge reciprocating me is ALSO my current best_id at the exact
-                                                                #CLAUDE: moment its packet gets processed. best_id can still change later in the same
-                                                                #CLAUDE: scan window, so whether a lock happens can depend on which order packets
-                                                                #CLAUDE: arrive in - not wrong, but worth knowing it's order-sensitive within one window.
-                                                                #CLAUDE: This is inside find_other so I'm not touching it - flagging for your review.
+                        their_id = short_id(bytes(result.device.addr))
 
-                    if reciprocated_device is not None and reciprocated_id is not None and reciprocated_id == best_id:
-                        self.locked_addr = reciprocated_id
-                        #this reads result.device.addr's raw bytes directly, no string-parsing.
-                        self.device_addr_scan = format_mac(bytes(reciprocated_device.addr))
+                        if result.rssi > best_rssi and result.rssi >= _CANDIDATE_RSSI_THRESHOLD:
+                            best_rssi = result.rssi
+                            best_id = their_id
 
-                        #CLAUDE: replying to this - "smaller MAC defines the color" would need its own
-                        #fairness check too 
-                        self.color_set = pair_color(self.own_id, reciprocated_id)
+                        if their_ack == self.own_id:
+                            reciprocated_device = result.device     #check logic here, it makes sense, but a little confusing
+                            reciprocated_id = their_id              #yes, if one found the other being a good match they should be automatically matched
+                                                                    #CLAUDE: replying to "check logic here" - my read: the lock a few lines down only
+                                                                    #CLAUDE: fires if the badge reciprocating me is ALSO my current best_id at the exact
+                                                                    #CLAUDE: moment its packet gets processed. best_id can still change later in the same
+                                                                    #CLAUDE: scan window, so whether a lock happens can depend on which order packets
+                                                                    #CLAUDE: arrive in - not wrong, but worth knowing it's order-sensitive within one window.
+                                                                    #CLAUDE: This is inside find_other so I'm not touching it - flagging for your review.
 
-                        self.ack_target = reciprocated_id
+                        if reciprocated_device is not None and reciprocated_id is not None and reciprocated_id == best_id:
+                            self.locked_addr = reciprocated_id
+                            #this reads result.device.addr's raw bytes directly, no string-parsing.
+                            self.device_addr_scan = format_mac(bytes(reciprocated_device.addr))
 
-                        #This one has to be updated religiosly. PLEASE
-                        self.is_tracking = True 
-                        print("Mutual match locked with:", self.device_addr_scan, "/n")
+                            #CLAUDE: replying to this - "smaller MAC defines the color" would need its own
+                            #fairness check too 
+                            self.color_set = pair_color(self.own_id, reciprocated_id)
 
-                    else:
-                        self.ack_target = best_id if best_id is not None else _ACK_NONE
+                            self.ack_target = reciprocated_id
 
-                    await asyncio.sleep_ms(100)
-                            
-            print("No good devices nearby *or exited the scanning loop")
+                            #This one has to be updated religiosly. PLEASE
+                            self.is_tracking = True 
+                            print("Mutual match locked with:", self.device_addr_scan, "/n")
+
+                        else:
+                            self.ack_target = best_id if best_id is not None else _ACK_NONE
+
+                        await asyncio.sleep_ms(100)
+
+                print("No good devices nearby *or exited the scanning loop")
+
+
+            except Exception as e:
+                print(f"find_other error, restarting: {e}")
+                await asyncio.sleep_ms(500)
+                continue
 
     #advertises all the time excluding the connection, this function shouldn't do anything besides advertising.
     async def advertise(self):
         while True:  
-            while not switch.value():
-                print("Switch off: skipping advertising")
-                await asyncio.sleep_ms(1000)
+            try:
+                while not switch.value():
+                    print("Switch off: skipping advertising")
+                    await asyncio.sleep_ms(1000)
+                    continue
+
+                #CLAUDE (NAI-3): manufacturer_data now comes from self._build_manufacturer_data() 
+                manufacturer_data = self._build_manufacturer_data()
+
+                #extra power drain when tracking for adversiting
+                _ADV_INTERVAL_MS = 50_000 if (self.is_tracking) else 100_000
+
+                #CLAUDE (NAI-4): check if hte timeout_ms has the needde function
+                try: 
+                    await aioble.advertise(
+                        _ADV_INTERVAL_MS,
+                        name=self.set_badgename,
+                        services=[_BADGE_SERVICE_UUID],
+                        manufacturer=(0xFFFF, manufacturer_data),
+                        appearance=0,
+                        connectable=False,
+                        timeout_ms=ADV_REFRESH_S * 1000,
+                    )
+                except asyncio.TimeoutError:
+                    pass  #normal case: nobody connected, just refresh the payload and re-advertise
+
+            except Exception as e:
+                print(f"advertise error, restarting: {e}")
+                await asyncio.sleep_ms(500)
                 continue
-
-            #CLAUDE (NAI-3): manufacturer_data now comes from self._build_manufacturer_data() 
-            manufacturer_data = self._build_manufacturer_data()
-
-            #extra power drain when tracking for adversiting
-            _ADV_INTERVAL_MS = 50_000 if (self.is_tracking) else 100_000
-
-            #CLAUDE (NAI-4): check if hte timeout_ms has the needde function
-            try: 
-                await aioble.advertise(
-                    _ADV_INTERVAL_MS,
-                    name=self.set_badgename,
-                    services=[_BADGE_SERVICE_UUID],
-                    manufacturer=(0xFFFF, manufacturer_data),
-                    appearance=0,
-                    connectable=False,
-                    timeout_ms=ADV_REFRESH_S * 1000,
-                )
-            except asyncio.TimeoutError:
-                pass  #normal case: nobody connected, just refresh the payload and re-advertise
 
     #CLAUDE builds the manufacturer-data payload for whichever mode we're currently in.
     def _build_manufacturer_data(self):
@@ -400,7 +412,7 @@ class Badge:
 
     #formula. good, but the constants can be different 
     def rssi_meters(self, rssi):
-        return f"{10**((-50-rssi)/(10*3.5))}"
+        return f"{10**((-55-rssi)/(35))}"
 
     #based on the rssi, lights up different frequencies with the color chosen by the pair
     #CLAUDE (NAI-7): rewritten, fixed a fragility: the old code did a single check-then-break 
@@ -497,7 +509,7 @@ class Badge:
                                             self.current_rssi = None
 
                                             # Wait for LED loop to see the cleared flag
-                                            await asyncio.sleep_ms(100)
+                                            await asyncio.sleep_ms(150)
 
                                             print()
                                             print("************||************")
@@ -521,6 +533,7 @@ class Badge:
 
                                             #IF THE SWITCH IS ON:
                                             self.is_tracking = False #so it is discoverable
+                                            await asyncio.sleep_ms(200)
 
                                             return True
                                         
@@ -594,6 +607,7 @@ class Badge:
                 pass
             self.is_tracking = False
             self.current_rssi = None
+            await asyncio.sleep_ms(150)
 
         #if during the allowed time interval the match was not found-
         print("Proximity scanning time is over :(")
@@ -621,13 +635,16 @@ class Badge:
 
             #now the connection is made, get the address and start tracking
             addr = self.locked_addr
-            
-            while not switch.value():
-                print("Switch off: skipping scanning")
-                await asyncio.sleep_ms(500)
+
+            if not switch.value():  # if switch turned off right after lock
+                self.locked_addr = None
+                self.ack_target = _ACK_NONE
+                self.is_tracking = False
+                print("switch is off, rerunning the loop")
+                continue
                 
             #UNnecessary delay, since the device needs to exit the connection state
-            await asyncio.sleep_ms(1500)
+            await asyncio.sleep_ms(1000)
             result = await self.search_with_scan(addr)
             count_of_tries = 0
             while not result and count_of_tries < _MAX_SEARCH_RETRIES:
@@ -651,6 +668,8 @@ class Badge:
 
             # Reset match result for the next loop
             self.locked_addr = None
+            self.ack_target = _ACK_NONE
+            self.is_tracking = False
 
 #somewhat updated
 async def main():
