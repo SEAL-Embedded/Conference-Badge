@@ -67,6 +67,23 @@ Full schematics and component rationale (LED and switch part numbers, PCB layout
 5. **Set the attendee profile.** This is currently the main manual step — see below.
 6. **Reset the board.** On boot it flashes the pair LED white as a self-test, then starts advertising and scanning.
 
+## Files on the badges
+
+1. **List files in the root directory:**
+python -m mpremote connect COM6 fs ls
+
+2. **List files in a specific directory:**
+python -m mpremote connect COM6 fs ls :/lib
+
+3. **Other:**
+python -m mpremote connect COM6 fs cat :main.py       # print file contents
+python -m mpremote connect COM6 fs cp :main.py .      # copy FROM device to PC
+python -m mpremote connect COM6 fs rm :main.py        # delete a file on device
+python -m mpremote connect COM6 fs mkdir :lib         # make a directory on device
+
+powershell
+python -m mpremote connect COM6 exec "import os; [print(f) for f in os.listdir()]"
+
 ### Setting a profile (current state)
 
 Two provisioning tools exist in this repo, but neither is wired into the firmware yet:
