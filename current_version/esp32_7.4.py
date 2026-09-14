@@ -1,5 +1,5 @@
 
-#last updated: 8/24
+#last updated: 9/12
 #switch version!
 
 from machine import Pin, PWM
@@ -16,7 +16,7 @@ sys.stdout.buffer.write(b'')
 ##---NECESSARY SETUPS---##
 _BADGE_SERVICE_UUID = bluetooth.UUID("6a94195c-98ff-4f26-9140-bc341ca1a88c")
 _ACK_NONE = b'\x00' * 3
-_CANDIDATE_RSSI_THRESHOLD = -65   # ignore tag-matches farther than ~conversational distance
+_CANDIDATE_RSSI_THRESHOLD = -200   # ignore tag-matches farther than ~conversational distance
 _SCAN_CYCLE_MS = 700
 ADV_REFRESH_S = 1       #how often to re-pack tracking/ack/color, since find_other() updates them live
 _MAX_SEARCH_RETRIES = 25   #how many times run_task retries search_with_scan after a lock before giving up (was 5)
@@ -24,20 +24,21 @@ interval_us = 150000  # 150ms, Continuous scanning approach:
 window_us = 100000    # 100ms (scan 2/3 of the interval)
 
 #led = Pin(2, Pin.OUT) #on-board LED
-#pins for the pair (static) LED, 32, 33, 25, 26
-# pins for the tracking (pwm) LED, 14, 12, 27
+#pins for the pair (static) LED: 32, 33, 25, 
+#turnon: 26
+#pins for the tracking (pwm) LED: 14, 12, 27
 
 #delay for the set up that might save us.
 time.sleep(2)
 
-red = Pin(25, Pin.OUT)
-green = Pin(26, Pin.OUT)
-blue = Pin(27, Pin.OUT)
-turnOn = Pin(14, Pin.OUT)
+red = Pin(14, Pin.OUT)
+green = Pin(27, Pin.OUT)
+blue = Pin(26, Pin.OUT)
+turnOn = Pin(12, Pin.OUT)
 
-switch = Pin(12, Pin.IN, Pin.PULL_UP)  # switch 
+switch = Pin(13, Pin.IN, Pin.PULL_UP)  # switch 
 
-r = PWM(Pin(13))
+r = PWM(Pin(25))
 g = PWM(Pin(33))
 b = PWM(Pin(32))
 
@@ -224,9 +225,9 @@ class Badge:
             return total_matched >= total_criteria - tolerance
 
     def check_match(self, read_info, read_target, their_tolerance):
-        if not (self.check_match_generic(self.match_tolerance, read_info, self.self_tags)):
+        if not (self.check_match_generic(self.match_tolerance, read_target, self.self_tags)):
             return False
-        if not (self.check_match_generic(their_tolerance, read_target, self.search_tags)):
+        if not (self.check_match_generic(their_tolerance, read_info, self.search_tags)):
             return False
         return True
 
