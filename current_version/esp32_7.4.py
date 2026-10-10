@@ -227,7 +227,7 @@ class Badge:
     def check_match(self, read_info, read_target, their_tolerance):
         if not (self.check_match_generic(their_tolerance, self.self_tags, read_target)):
             return False
-        if not (self.check_match_generic(their_tolerance, read_info, self.search_tags)):
+        if not (self.check_match_generic(self.match_tolerance, read_info, self.search_tags)):
             return False
         return True
 
